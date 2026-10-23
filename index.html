@@ -619,6 +619,10 @@ function cloudLogout() {
 }
 function cloudWatchAuth() {
   if(!CLOUD.ok) { cloudShowStatus(null); return; }
+  // Sinusuri ang resulta ng login pagbalik mula sa Google, para makita ang eksaktong error kung may mali
+  CLOUD.auth.getRedirectResult()
+    .then(r => { if(r && r.user) alertMsg('✅ Naka-login: ' + r.user.email); })
+    .catch(e => alertMsg('Login error: ' + (e.code || e.message)));
   CLOUD.auth.onAuthStateChanged(async user => {
     if(!user) { CLOUD.on = false; cloudShowStatus(null); return; }
     CLOUD.on = true;
@@ -1677,6 +1681,26 @@ async function deleteLine(lineId) {
     }
 }
 
+// Tanggalin ang mga magkakaparehong site na walang structure. Ang una ang itinitira.
+function dedupeLines() {
+    const seen = new Set();
+    const keep = [];
+    let removed = 0;
+    lines.forEach(l => {
+        const key = String(l.name).trim().toLowerCase();
+        const hasData = (data[l.id] || []).length > 0;
+        if(seen.has(key) && !hasData) { removed++; delete data[l.id]; delete shutdowns[l.id]; return; }
+        seen.add(key);
+        keep.push(l);
+    });
+    if(removed) {
+        lines = keep;
+        saveLines();
+        saveAllData();
+        saveShutdowns();
+    }
+}
+
 // Target Poles ay awtomatikong bilang ng lahat ng poste ng mga structure sa site
 function targetPolesOf(lineId) {
     return (data[lineId] || []).reduce((a, i) => a + (parseInt(i.poles) || 0), 0);
@@ -2410,6 +2434,7 @@ safeRun('shutdowns', () => lines.forEach(line => { if(!shutdowns[line.id]) shutd
 safeRun('save-shutdowns', saveShutdowns);
 safeRun('nav', renderLinesNav);
 safeRun('lines', renderLinesList);
+safeRun('dedupe', dedupeLines);
 safeRun('sections', buildDynamicSections);
 safeRun('views', newBumpViews);
 safeRun('dashboard', updateDashboard);

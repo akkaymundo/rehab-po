@@ -264,6 +264,9 @@ tr.flash td{animation:flashrow 2.8s ease-out}
 .kv-val{display:flex;align-items:center;gap:6px}
 .ribbon{writing-mode:horizontal-tb;white-space:nowrap;display:inline-block;background:#e53935;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.4px;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle;line-height:1.4}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -282,6 +285,7 @@ tr.flash td{animation:flashrow 2.8s ease-out}
 
 <div class="container">
     <nav id="main-nav" aria-label="Menu">
+        <button id="cloud-btn" onclick="cloudLogin()" style="display:none">🔐 Mag-login</button>
         <div class="nav-brand"><strong>⚡ 69kV Rehab</strong><small>Project Progress Tracker</small></div>
         <div class="nav-label">Pangunahin</div>
         <button class="active" onclick="showTab('dashboard')">📊 Dashboard</button>
@@ -567,17 +571,17 @@ function getDefaultPoles(type) {
 
 // === SAVE/LOAD ===
 function saveLines() {
-    localStorage.setItem('proj_lines', JSON.stringify(lines));
+    lsSet('proj_lines', JSON.stringify(lines));
     renderLinesNav();
     renderLinesList();
     updateDashboard();
 }
 function saveAllData() {
-    localStorage.setItem('proj_data', JSON.stringify(data));
+    lsSet('proj_data', JSON.stringify(data));
     updateDashboard();
 }
 function saveShutdowns() {
-    localStorage.setItem('proj_shutdowns', JSON.stringify(shutdowns));
+    lsSet('proj_shutdowns', JSON.stringify(shutdowns));
 }
 function deleteShutdown(lineId, shutdownId) {
     if(!confirm('Burahin ang shutdown record?')) return;
@@ -809,7 +813,7 @@ function addShutdownGlobal() {
 }
 let pos = JSON.parse(localStorage.getItem('proj_pos') || '[]');
 let poEditId = null;
-function savePOs() { localStorage.setItem('proj_pos', JSON.stringify(pos)); }
+function savePOs() { lsSet('proj_pos', JSON.stringify(pos)); }
 const STAGE_BY = [['Roadside','roadsideBy'],['Excavation','excavationBy'],['Dragging','draggingBy'],['Erection','erectionBy'],['Anchor/Lag','anchorBy'],['Transfer','transferBy'],['Transfer Alpha','transferAlphaBy'],['Transfer Bravo','transferBravoBy'],['Transfer Charlie','transferCharlieBy'],['Retrieve','retrievalBy']];
 function allWorkers() {
     const names = new Set(workers.map(w => w.trim()));
@@ -1144,7 +1148,7 @@ function restoreFromText(txt) {
     if(!obj || obj.app !== '69kV Rehab Tracker' || !obj.data) { alert('Hindi tamang backup.'); return; }
     if(!confirm('Papalitan ng backup ang LAHAT ng kasalukuyang data.\nPetsa ng backup: ' + (obj.savedAt || '-') + '\n\nTuloy?')) return;
     Object.keys(localStorage).filter(k => k.startsWith('proj_')).forEach(k => localStorage.removeItem(k));
-    Object.keys(obj.data).forEach(k => { if(k.startsWith('proj_')) localStorage.setItem(k, obj.data[k]); });
+    Object.keys(obj.data).forEach(k => { if(k.startsWith('proj_')) lsSet(k, obj.data[k]); });
     alert('Na-restore ang backup. Ili-reload ang page.');
     location.reload();
 }
@@ -1224,7 +1228,7 @@ function priceChanged(e, det) {
     if(f) { if(val === undefined) delete prices.flat[f]; else prices.flat[f] = val; }
     else if(t && k) { prices.types[t] = prices.types[t] || {}; if(val === undefined) delete prices.types[t][k]; else prices.types[t][k] = val; }
     else return;
-    try { localStorage.setItem('proj_prices_v5', JSON.stringify(prices)); } catch(e) {}
+    try { lsSet('proj_prices_v5', JSON.stringify(prices)); } catch(e) {}
     priceBadge(det);
 }
 function priceBadge(det) {
@@ -1244,7 +1248,7 @@ function hwPartsAll() {
     if(!hwParts) { try { hwParts = JSON.parse(localStorage.getItem('proj_hw_parts_v1') || '{}') || {}; } catch(e) { hwParts = {}; } }
     return hwParts;
 }
-function hwPartsSave() { try { localStorage.setItem('proj_hw_parts_v1', JSON.stringify(hwPartsAll())); } catch(e) {} }
+function hwPartsSave() { try { lsSet('proj_hw_parts_v1', JSON.stringify(hwPartsAll())); } catch(e) {} }
 function hwCur() { return document.getElementById('hw-type').value; }
 var hwEditIdx = -1;
 function hwRender() {
@@ -1326,7 +1330,7 @@ function notify(msg) {
 }
 function savePriceForm() {
     Object.keys(prices.types).forEach(t => { if(!Object.keys(prices.types[t] || {}).length) delete prices.types[t]; });
-    localStorage.setItem('proj_prices_v5', JSON.stringify(prices));
+    lsSet('proj_prices_v5', JSON.stringify(prices));
     document.querySelectorAll('#pricesPage details.stage').forEach(d => { d.open = false; });
     window.scrollTo({ top: 0, behavior: 'smooth' });
     notify('Na-save ang mga presyo.');
@@ -1354,7 +1358,7 @@ function mergeSameDateShutdowns() {
 }
 let workers = [];
 try { workers = JSON.parse(localStorage.getItem('proj_workers') || '[]') || []; } catch(e) { workers = []; }
-function saveWorkers() { localStorage.setItem('proj_workers', JSON.stringify(workers)); }
+function saveWorkers() { lsSet('proj_workers', JSON.stringify(workers)); }
 const WORKER_FIELDS = () => STEP_KEYS.map(k => k + 'By').concat(['transferBy']);
 function collectUsedWorkers() {
     const out = new Map();
@@ -2072,7 +2076,7 @@ function newAll() {
     if(!newStore) { try { newStore = JSON.parse(localStorage.getItem('proj_new_v1') || '{}') || {}; } catch(e) { newStore = {}; } }
     return newStore;
 }
-function newSave() { try { localStorage.setItem('proj_new_v1', JSON.stringify(newAll())); } catch(e) {} }
+function newSave() { try { lsSet('proj_new_v1', JSON.stringify(newAll())); } catch(e) {} }
 function newCount(key) { const m = newAll()[key]; return (m && m.v < NEW_VIEWS) ? m.n : 0; }
 function newAdd(key, add) {
     const all = newAll(), cur = all[key];
@@ -2104,7 +2108,7 @@ function dashTrack(lineId, key, cur) {
     const mk = 'd|' + lineId + '|' + key;
     if(base === undefined) seen[lineId][key] = cur;
     else { if(cur > base) newAdd(mk, cur - base); seen[lineId][key] = cur; }
-    try { localStorage.setItem('proj_dash_seen_v1', JSON.stringify(seen)); } catch(e) {}
+    try { lsSet('proj_dash_seen_v1', JSON.stringify(seen)); } catch(e) {}
     return newCount(mk);
 }
 
@@ -2114,7 +2118,7 @@ function markStructureStatus(item) {
     const id = String(item.id), st = getStatus(item).text, prev = strStatus[id];
     if(prev === undefined) strStatus[id] = st;
     else if(prev !== st) { newAdd('s|' + id, 1); strStatus[id] = st; }
-    try { localStorage.setItem('proj_str_status_v1', JSON.stringify(strStatus)); } catch(e) {}
+    try { lsSet('proj_str_status_v1', JSON.stringify(strStatus)); } catch(e) {}
 }
 
 function updateDashboard() {
@@ -2243,7 +2247,86 @@ syncWorkers();
 fillWorkerSelects();
 renderPrices();
 
+// === SHARED DATABASE (Firebase Firestore) ===
+const FB_CONFIG = {
+  apiKey: "AIzaSyAeMdRt_L0wV6ivtZzo2eCgWtaIwkQaHhM",
+  authDomain: "rehab-po.firebaseapp.com",
+  projectId: "rehab-po",
+  storageBucket: "rehab-po.firebasestorage.app",
+  messagingSenderId: "862993855886",
+  appId: "1:862993855886:web:803bbb22f09819da8ba0df"
+};
+const CLOUD = { ok: false, on: false, auth: null, ref: null, timer: null };
+function cloudInit() {
+  try {
+    if (typeof firebase === 'undefined') return;
+    if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+    CLOUD.auth = firebase.auth();
+    CLOUD.ref = firebase.firestore().collection('tracker').doc('main');
+    CLOUD.ok = true;
+  } catch(e) { console.error('[cloud init]', e); }
+}
+function cloudCollect() {
+  const out = {};
+  for(let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if(k && k.startsWith('proj_')) out[k] = localStorage.getItem(k);
+  }
+  return out;
+}
+function cloudPush() {
+  if(!CLOUD.ok || !CLOUD.on) return;
+  clearTimeout(CLOUD.timer);
+  CLOUD.timer = setTimeout(() => {
+    CLOUD.ref.set({ data: cloudCollect(), updated: new Date().toISOString() })
+      .catch(e => console.error('[cloud push]', e));
+  }, 400);
+}
+async function cloudPull() {
+  if(!CLOUD.ok || !CLOUD.on) return false;
+  try {
+    const snap = await CLOUD.ref.get();
+    if(!snap.exists) return false;
+    const d = (snap.data() || {}).data || {};
+    Object.keys(d).forEach(k => localStorage.setItem(k, d[k]));
+    return true;
+  } catch(e) { console.error('[cloud pull]', e); return false; }
+}
+function cloudShowStatus(email) {
+  const b = document.getElementById('cloud-btn');
+  if(!b) return;
+  if(!CLOUD.ok) { b.style.display = 'none'; return; }
+  b.style.display = '';
+  if(email) { b.textContent = '☁️ ' + email + ' · Mag-logout'; b.onclick = cloudLogout; }
+  else { b.textContent = '🔐 Mag-login'; b.onclick = cloudLogin; }
+}
+function cloudLogin() {
+  if(CLOUD.ok) CLOUD.auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+}
+function cloudLogout() {
+  if(CLOUD.ok) CLOUD.auth.signOut().then(() => location.reload());
+}
+function cloudWatchAuth() {
+  if(!CLOUD.ok) { cloudShowStatus(null); return; }
+  CLOUD.auth.onAuthStateChanged(async user => {
+    if(!user) { CLOUD.on = false; cloudShowStatus(null); return; }
+    CLOUD.on = true;
+    cloudShowStatus(user.email);
+    const before = JSON.stringify(cloudCollect());
+    const pulled = await cloudPull();
+    if(!pulled) { cloudPush(); return; }
+    if(JSON.stringify(cloudCollect()) !== before) location.reload();
+  });
+}
+function lsSet(k, v) {
+  localStorage.setItem(k, v);
+  if(String(k).startsWith('proj_')) cloudPush();
+}
+
 // === START ===
+async function startApp() {
+cloudInit();
+cloudWatchAuth();
 function safeRun(name, fn) { try { fn(); } catch(e) { console.error('[' + name + ']', e); } }
 safeRun('defaults', initDefaults);
 safeRun('shutdowns', () => lines.forEach(line => { if(!shutdowns[line.id]) shutdowns[line.id] = []; }));
@@ -2253,6 +2336,8 @@ safeRun('lines', renderLinesList);
 safeRun('sections', buildDynamicSections);
 safeRun('views', newBumpViews);
 safeRun('dashboard', updateDashboard);
+}
+startApp();
 </script>
 
 

@@ -1,0 +1,2260 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>69kV Rehab Project Tracker</title>
+    <style>
+:root{--navy:#0b3a5e;--blue:#0a78b5;--blue-d:#065f90;--bg:#eaf0f6;--card:#fff;--soft:#f4f8fc;--line:#d9e2ec;--ink:#17283b;--mut:#62748a;--gold:#f5b400;--r:12px}
+*{box-sizing:border-box;font-family:"Segoe UI",Calibri,Roboto,Arial,sans-serif;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);line-height:1.5;padding:12px;font-size:15px}
+.container{max-width:1240px;margin:0 auto;background:transparent;box-shadow:none;overflow:visible}
+header{background:var(--navy);color:#fff;padding:18px 20px;border-radius:var(--r) var(--r) 0 0;text-align:left;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;border-bottom:4px solid var(--gold)}
+header h1{font-size:21px;font-weight:700}
+header p{font-size:13px;opacity:.8;flex-basis:100%;order:3}
+nav{background:var(--card);padding:8px 10px;display:flex;gap:6px;overflow-x:auto;position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line);box-shadow:0 2px 6px rgba(11,58,94,.08);-webkit-overflow-scrolling:touch}
+nav button{flex:0 0 auto;padding:9px 15px;border:1px solid var(--line);background:var(--soft);border-radius:999px;cursor:pointer;font-weight:600;font-size:13.5px;color:var(--navy);white-space:nowrap}
+nav button.active{background:var(--blue);border-color:var(--blue);color:#fff}
+section{padding:18px 4px;display:none}
+section.active{display:block}
+.container>section,.container>#dynamic-sections{background:transparent}
+h2{color:var(--navy);margin-bottom:16px;font-size:20px;padding-bottom:0;border:0}
+h3{font-size:16px}
+h4{color:var(--mut);margin:12px 0 8px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(11,58,94,.06)}
+.card h3{color:var(--navy);margin-bottom:12px}
+.card p{margin:3px 0;font-size:14.5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+label{font-size:12.5px;color:var(--mut);font-weight:600;display:block;margin-bottom:3px}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:15px;background:#fff;color:var(--ink)}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+textarea{resize:vertical;min-height:64px}
+.checkbox-item{display:flex;align-items:center;gap:6px;font-weight:normal;font-size:14px;color:var(--ink)}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue)}
+button{font-family:inherit}
+button.primary{background:var(--blue);color:#fff;border:0;padding:11px 20px;border-radius:8px;cursor:pointer;font-size:15px;font-weight:600}
+button.primary:hover{background:var(--blue-d)}
+button.secondary{background:#e3eaf2;color:var(--navy);border:0;padding:10px 16px;border-radius:8px;cursor:pointer;margin-right:8px;font-weight:600}
+button.danger{background:#fde8ea;color:#b42332;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
+button.edit-btn{background:#fff3cc;color:#6b4e00;border:0;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:600}
+.btn-sm{padding:6px 10px;font-size:12px}
+.table-wrapper{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:1300px}
+th,td{padding:9px 8px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--navy);color:#fff;font-weight:600;position:sticky;top:0}
+tr:hover td{background:#f1f8fd}
+.status{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.status.cleared{background:#d6f3e0;color:#0f6b34}
+.status.done{background:#d8e8ff;color:#0a3f8f}
+.status.pending{background:#fff0c2;color:#7a5600}
+.status.changed{background:#e7ddff;color:#4b22a0}
+.old-value{text-decoration:line-through;color:#9aa7b5;font-size:11px}
+.new-value{font-weight:700;color:var(--blue)}
+.small-note{font-size:12px;color:var(--mut);margin-top:3px}
+.edit-mode{background:#fffbea;border:2px solid var(--gold)}
+.shutdown-card{border-left:5px solid var(--gold)}
+.shutdown-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-bottom:16px}
+.shutdown-item{border:1px solid #f1dc9b;background:#fffaea;border-radius:10px;padding:12px}
+.hub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.hub-item{display:flex;flex-direction:column;gap:6px;text-align:left;background:#fff;border:1px solid var(--line);border-left:5px solid var(--blue);border-radius:var(--r);padding:14px;cursor:pointer;color:var(--ink);font-size:14px;box-shadow:0 1px 3px rgba(11,58,94,.06)}
+.hub-item:hover{border-color:var(--blue);background:#f1f8fd}
+.hub-item strong{color:var(--navy);font-size:15.5px}
+.hub-item span{color:var(--mut);font-size:12.5px}
+.hub-bar{display:block;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.hub-bar i{display:block;height:100%;background:var(--blue)}
+.stages-wrap{grid-column:1/-1}
+.stages-wrap h4{margin:6px 0 10px;color:var(--navy);font-size:14px}
+.stages{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;align-items:start}
+details.stage{border:1px solid var(--line);border-radius:10px;background:var(--soft);overflow:hidden}
+details.stage[open]{background:#fff;border-color:var(--blue);box-shadow:0 2px 8px rgba(10,120,181,.12)}
+details.stage summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;padding:12px 13px;font-weight:600;color:var(--navy);font-size:14.5px}
+details.stage summary::-webkit-details-marker{display:none}
+details.stage summary::after{content:"▾";color:var(--mut);font-size:13px}
+details.stage[open] summary::after{content:"▴"}
+.sbadge{margin-left:auto;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:#e3eaf2;color:var(--mut);white-space:nowrap}
+.sbadge.ok{background:#d6f3e0;color:#0f6b34}
+.sbadge.part{background:#fff0c2;color:#7a5600}
+.stage-body{padding:2px 13px 14px}
+.phase-grid{display:grid;gap:10px}
+table.tight{min-width:980px}
+.sd-row{display:grid;grid-template-columns:1fr 1.5fr auto;gap:10px;align-items:start;margin-bottom:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--soft)}
+.sd-row details.stage{background:#fff}
+.sd-row .sdtxt{flex:1;font-weight:600;white-space:normal;word-break:break-word}
+.sd-list{max-height:260px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.sd-del{align-self:end;height:44px}
+.sd-assign{margin:3px 0;font-size:13.5px}
+/* prices */
+.price-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+.price-all{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
+.price-all input{flex:1;min-width:120px}
+@media (max-width:720px){.sd-row{grid-template-columns:1fr}.sd-del{height:auto;width:100%}}
+.po-site{font-weight:700;color:var(--navy);margin:12px 0 6px;font-size:14px}
+.po-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.po-row{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--soft);font-size:14px;color:var(--ink);font-weight:normal;margin:0;cursor:pointer}
+.po-row.off{opacity:.55;cursor:not-allowed}
+.po-row small{color:var(--mut);display:block;font-size:11.5px}
+.po-lines div{font-size:13px;margin:2px 0}
+table.tight th:nth-child(2),table.tight td:nth-child(2),table.tight th:nth-child(3),table.tight td:nth-child(3){position:sticky;background:#fff;z-index:2}
+table.tight th:nth-child(2),table.tight th:nth-child(3){background:var(--navy);z-index:3}
+table.tight th:nth-child(2),table.tight td:nth-child(2){left:0;width:86px;min-width:86px;max-width:86px;white-space:normal}
+table.tight th:nth-child(3),table.tight td:nth-child(3){left:86px;width:54px;min-width:54px;max-width:54px;text-align:center;box-shadow:3px 0 5px -2px rgba(11,58,94,.25)}
+table.tight tr:hover td:nth-child(2),table.tight tr:hover td:nth-child(3){background:#f1f8fd}
+td.mk{text-align:center;color:#b9c4d0;font-size:15px;width:52px}
+td.mk.y{color:#1d9a55;font-weight:700}
+.ph b{font-weight:600;color:#9aa7b5;font-size:12.5px;white-space:nowrap}
+.ph b.y{color:#1d9a55}
+.clear-stage{display:block;margin-top:12px;background:#fde8ea;color:#b42332;border:0;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.row3{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:end}
+.row3>div{min-width:0}
+.row3 label{min-height:2.6em;display:flex;align-items:flex-end;line-height:1.25}
+.row3 input,.row3 select{height:44px;padding:8px}
+@media (max-width:720px){.row3{gap:6px}.row3 label{font-size:11.5px}.row3 input,.row3 select{padding:8px 6px}}
+@media (max-width:720px){
+body{padding:0}
+header{border-radius:0;padding:14px}
+header h1{font-size:18px}
+section{padding:14px 10px}
+.card{padding:13px}
+.grid{grid-template-columns:1fr 1fr}
+.grid>div[style*="span 2"]{grid-column:1/-1!important}
+input[type=text],input[type=number],input[type=date],select,textarea{font-size:16px}
+button.primary,button.secondary{min-height:44px}
+}
+@media (max-width:440px){.grid{grid-template-columns:1fr}}
+@media print{
+body{background:#fff;padding:0}nav,button{display:none!important}
+header{background:#fff;color:#000;border-bottom:2px solid #000}
+.card{box-shadow:none}
+}
+
+/* ===== Layout: appbar + sliding left menu ===== */
+body{padding:0;font-family:"Inter","Segoe UI",Calibri,Roboto,Arial,sans-serif;background:#eef2f7;-webkit-font-smoothing:antialiased}
+.container{max-width:1240px;margin:0 auto;padding:22px 22px 60px}
+header.appbar{position:sticky;top:0;z-index:40;display:flex;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:14px;background:var(--navy);color:#fff;padding:10px 18px;padding-top:calc(10px + env(safe-area-inset-top,0px));border-radius:0;border-bottom:3px solid var(--gold);box-shadow:0 2px 12px rgba(8,24,40,.2);text-align:left}
+header.appbar .brand{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+header.appbar .brand strong{font-size:17px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
+header.appbar .brand small{font-size:11.5px;opacity:.7;white-space:nowrap}
+.page-title{margin-left:auto;font-weight:600;font-size:14px;background:rgba(255,255,255,.12);padding:7px 14px;border-radius:999px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48%}
+#menu-btn{display:flex;flex-direction:column;justify-content:center;gap:5px;width:42px;height:42px;padding:0 11px;flex:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);border-radius:11px;cursor:pointer;transition:background .2s}
+#menu-btn:hover{background:rgba(255,255,255,.22)}
+#menu-btn span{display:block;height:2px;background:#fff;border-radius:2px;transition:transform .25s,opacity .2s}
+body.menu-open #menu-btn span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+body.menu-open #menu-btn span:nth-child(2){opacity:0}
+body.menu-open #menu-btn span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+nav#main-nav{position:fixed;top:0;left:0;bottom:0;width:292px;max-width:86vw;z-index:60;display:flex;flex-direction:column;gap:4px;overflow-y:auto;overflow-x:hidden;padding:0 0 20px;background:linear-gradient(180deg,#0d4170 0%,#082a45 100%);border:0;box-shadow:none;transform:translateX(-104%);transition:transform .3s cubic-bezier(.4,0,.2,1),box-shadow .3s;visibility:hidden}
+body.menu-open nav#main-nav{transform:none;box-shadow:10px 0 36px rgba(0,0,0,.4);visibility:visible}
+.nav-brand{padding:calc(24px + env(safe-area-inset-top,0px)) 22px 18px;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,.14);color:#fff}
+.nav-brand strong{display:block;font-size:19px;letter-spacing:.2px}
+.nav-brand small{opacity:.65;font-size:12.5px}
+.nav-label{padding:14px 22px 6px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+nav#main-nav button{display:flex;align-items:center;gap:10px;flex:none;width:calc(100% - 20px);margin:0 10px;padding:13px 14px;text-align:left;white-space:normal;background:transparent;border:0;border-left:3px solid transparent;border-radius:10px;color:#d6e6f5;font-size:15px;font-weight:600;transition:background .15s,color .15s}
+nav#main-nav button:hover{background:rgba(255,255,255,.09);color:#fff}
+nav#main-nav button.active{background:rgba(255,255,255,.15);border-left-color:var(--gold);color:#fff}
+#nav-overlay{position:fixed;inset:0;z-index:50;background:rgba(8,24,40,.55);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .28s}
+body.menu-open #nav-overlay{opacity:1;pointer-events:auto}
+body.menu-open{overflow:hidden}
+
+/* ===== Polish ===== */
+section{padding:6px 0 0}
+h2{font-size:23px;font-weight:700;letter-spacing:-.2px;margin-bottom:18px}
+.card{border-radius:14px;padding:18px;box-shadow:0 1px 2px rgba(11,58,94,.05),0 6px 18px rgba(11,58,94,.05);border-color:#dde5ee}
+input[type=text],input[type=number],input[type=date],select,textarea{border-radius:10px;border-color:#cfd9e5;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 3px rgba(10,120,181,.18)}
+button.primary{border-radius:10px;box-shadow:0 2px 6px rgba(10,120,181,.28);transition:background .15s,transform .05s}
+button.primary:active{transform:translateY(1px)}
+button.secondary,button.danger,button.edit-btn{border-radius:10px}
+th{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase}
+.table-wrapper{border-radius:12px;border-color:#dde5ee;box-shadow:0 1px 2px rgba(11,58,94,.05)}
+tbody tr:nth-child(even) td{background:#fafcfe}
+tbody tr:hover td{background:#eef6fc}
+.status{letter-spacing:.2px}
+@media (max-width:720px){
+  .container{padding:14px 12px 50px}
+  header.appbar{padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top,0px));gap:10px}
+  header.appbar .brand strong{font-size:15px}
+  header.appbar .brand small{display:none}
+  .page-title{font-size:12.5px;padding:6px 11px;max-width:52%}
+  h2{font-size:20px}
+}
+@media print{header.appbar,#nav-overlay,nav#main-nav,#menu-btn{display:none!important}.container{padding:0}}
+
+/* ===== Dashboard ===== */
+.sec-title{margin:26px 0 12px;color:var(--navy);font-size:16px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{background:#fff;border:1px solid #dde5ee;border-radius:14px;padding:14px 16px;box-shadow:0 1px 2px rgba(11,58,94,.05)}
+.tile span{display:block;font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.tile b{display:block;font-size:28px;color:var(--navy);line-height:1.25;margin-top:2px}
+.tile b small{font-size:14px;color:var(--mut);font-weight:600}
+.site-card h3{margin-bottom:14px}
+.pbar{height:8px;border-radius:99px;background:#e3eaf2;overflow:hidden;margin-top:14px}
+.pbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--blue),#35a7e0)}
+.pbar-note{font-size:12px;color:var(--mut);margin:5px 0 8px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #edf1f6;font-size:14px}
+.kv:last-child{border-bottom:0}
+.kv span{color:#41546b}
+.kv b{color:var(--navy)}
+.kv.purple b{color:#5024a1}
+@media (max-width:720px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile b{font-size:24px}}
+
+/* PO preview / billing */
+.po-modal{position:fixed;inset:0;z-index:100;background:rgba(8,24,40,.94);overflow:auto;padding:20px 12px}
+.po-wrap{max-width:820px;margin:0 auto}
+.po-modal-actions{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.po-sheet{position:relative;background:#fff;color:#17283b;border-radius:6px;padding:32px 34px 38px;box-shadow:0 10px 40px rgba(0,0,0,.35);font-size:14px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.po-head{display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid var(--navy);padding-bottom:14px;margin-bottom:16px}
+.po-head h1{font-size:22px;color:var(--navy);letter-spacing:.5px}
+.po-head small{color:var(--mut)}
+.po-head{align-items:flex-start}
+.po-meta,.po-meta td{border:0;background:none}
+.po-meta{border-collapse:collapse;font-size:13.5px;line-height:1.75}
+.po-meta td{padding:0;vertical-align:top;text-align:left}
+.po-meta td:nth-child(1){width:72px;color:var(--mut);font-weight:600}
+.po-meta td:nth-child(2){width:16px;text-align:center}
+.po-meta td.v{font-weight:600;padding-left:4px}
+.po-red{color:#d32f2f;font-weight:700}
+.po-draft{color:#a76a00;font-size:12.5px;font-style:italic;margin:8px 0 0}
+.po-sheet h4{margin:16px 0 6px;color:var(--navy);font-size:13.5px;text-transform:uppercase;letter-spacing:.05em}
+.po-sheet table{min-width:0;width:100%;font-size:13px}
+.po-sheet th{position:static;background:var(--navy);color:#fff}
+.po-sheet td{white-space:normal;vertical-align:top}
+.po-sheet td.r,.po-sheet th.r{text-align:right}
+.po-sheet tr:nth-child(even) td{background:#fff}
+.po-sheet .sub td{font-weight:700;background:#f3f6fa}
+.po-total{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:14px 16px;background:var(--navy);color:#fff;border-radius:8px;font-size:18px;font-weight:700}
+.po-sign{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px}
+.po-sig{text-align:center;font-size:12.5px;color:var(--mut)}
+.po-sig .signed{min-height:30px;font-family:"Segoe Script","Brush Script MT",cursive;font-size:22px;color:#1d4f91}
+.po-sig .line{border-top:1px solid #333;margin-bottom:4px}
+.po-stamp{display:inline-block;transform:rotate(-8deg);border:4px solid #1d9a55;color:#1d9a55;border-radius:10px;padding:6px 18px;font-size:28px;font-weight:800;letter-spacing:2px;text-align:center;opacity:.88}
+.po-stampwrap{text-align:center;margin-top:26px;margin-bottom:-14px}
+.po-stamp small{display:block;font-size:12px;letter-spacing:.5px;font-weight:700}
+.po-unpaid{margin-top:14px;color:#a76a00;font-weight:700}
+@media (max-width:720px){.po-sheet{padding:20px 16px 30px}.po-sign{gap:16px}.po-stamp{font-size:22px}}
+@media print{
+  body.po-printing .container,body.po-printing header.appbar{display:none!important}
+  body.po-printing{background:#fff}
+  body.po-printing #po-modal{position:static;background:none;padding:0;overflow:visible;display:block!important}
+  body.po-printing .po-modal-actions{display:none!important}
+  body.po-printing .po-sheet{box-shadow:none;border-radius:0;padding:0}
+}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,30px);z-index:200;max-width:92vw;background:#127a46;color:#fff;padding:13px 20px;border-radius:12px;font-weight:600;font-size:14.5px;box-shadow:0 8px 28px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media print{.toast{display:none}}
+
+/* global search */
+#gs-btn{flex:none;width:42px;height:42px;font-size:18px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);border-radius:11px;cursor:pointer;color:#fff;padding:0}
+#gs-btn:hover{background:rgba(255,255,255,.22)}
+.gs-panel{position:absolute;left:0;right:0;top:100%;z-index:45;background:var(--navy);padding:0 14px 14px;box-shadow:0 14px 30px rgba(8,24,40,.35)}
+.gs-bar,.gs-results{max-width:720px;margin:0 auto}
+.gs-bar{display:flex;gap:8px;padding-top:4px}
+.gs-bar input{flex:1;min-width:0;height:46px;font-size:16px;border:0;border-radius:12px;padding:0 14px;color:var(--ink);background:#fff}
+.gs-x{width:46px;height:46px;flex:none;border:0;border-radius:12px;background:rgba(255,255,255,.14);color:#fff;font-size:16px;cursor:pointer}
+.gs-results{margin-top:10px;background:#fff;border-radius:12px;max-height:58vh;overflow:auto;color:var(--ink)}
+.gs-hint{padding:14px 16px;color:var(--mut);font-size:14px}
+.gs-item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;padding:12px 16px;background:#fff;border:0;border-bottom:1px solid #edf1f6;cursor:pointer;color:var(--ink);font-size:15px}
+.gs-item:last-child{border-bottom:0}
+.gs-item:hover,.gs-item:focus-visible{background:#eef6fc}
+.gs-item small{display:block;color:var(--mut);font-size:12.5px;margin-top:2px}
+tr.flash td{animation:flashrow 2.8s ease-out}
+@keyframes flashrow{0%,55%{background:#fff0a6}100%{background:transparent}}
+@media (max-width:720px){#gs-btn{width:40px;height:40px}.page-title{max-width:40%}}
+.status.prepared{background:#e3f2fd;color:#0b5394;}
+.status.erected{background:#ffe8cc;color:#8a4b00;}
+.kv-val{display:flex;align-items:center;gap:6px}
+.ribbon{writing-mode:horizontal-tb;white-space:nowrap;display:inline-block;background:#e53935;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.4px;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle;line-height:1.4}
+</style>
+</head>
+<body>
+
+<header class="appbar">
+    <button id="menu-btn" type="button" aria-label="Buksan ang menu" aria-expanded="false" aria-controls="main-nav" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+    <div class="brand"><strong>⚡ 69kV Rehab Project</strong><small>Project Progress Tracker</small></div>
+    <div id="page-title" class="page-title">📊 Dashboard</div>
+    <button id="gs-btn" type="button" aria-label="Maghanap ng structure" onclick="gsToggle()">🔍</button>
+    <div id="gs-panel" class="gs-panel" style="display:none">
+        <div class="gs-bar"><input id="gs-input" type="search" inputmode="search" autocomplete="off" placeholder="Hanapin ang structure number o pangalan ng gumawa" oninput="gsRun()"><button type="button" class="gs-x" onclick="gsClose()" aria-label="Isara">✕</button></div>
+        <div id="gs-results" class="gs-results"></div>
+    </div>
+</header>
+
+<div id="nav-overlay" onclick="closeMenu()"></div>
+
+<div class="container">
+    <nav id="main-nav" aria-label="Menu">
+        <div class="nav-brand"><strong>⚡ 69kV Rehab</strong><small>Project Progress Tracker</small></div>
+        <div class="nav-label">Pangunahin</div>
+        <button class="active" onclick="showTab('dashboard')">📊 Dashboard</button>
+        <button onclick="showTab('linesHub')">📍 Project Sites</button>
+        <button onclick="showTab('stepsPage')">🪜 Steps</button>
+        <button onclick="showTab('shutdownPage')">⚡ Shutdown</button>
+        <button onclick="showTab('poPage')">📄 PO</button>
+        <button onclick="showTab('hwPage')">🔩 Line Hardware</button>
+        <div class="nav-label">Pamamahala at Ulat</div>
+        <button onclick="showTab('lineMgr')">➕ Add Project Site</button>
+        <button onclick="showTab('workersPage')">👷 Contractors</button>
+        <button onclick="showTab('pricesPage')">💲 Prices</button>
+        <button onclick="showTab('settingsPage')">⚙️ Settings</button>
+        <button onclick="showTab('report')">📋 Full Report</button>
+    </nav>
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="active">
+        <h2>📊 Project Overview</h2>
+        <div id="dash-lines"></div>
+        <h3 class="sec-title">📊 OVERALL TOTALS</h3>
+        <div class="tiles">
+            <div class="tile"><span>Total Structures</span><b id="grand-structures">0</b></div>
+            <div class="tile"><span>Total Poles</span><b id="grand-poles">0</b></div>
+            <div class="tile"><span>Completed</span><b id="grand-cleared">0</b><small id="grand-cleared-poles" style="display:block;color:var(--mut);margin-top:4px"></small></div>
+            <div class="tile"><span>Remaining to do</span><b id="grand-remaining">0</b><small id="grand-remaining-poles" style="display:block;color:var(--mut);margin-top:4px"></small></div>
+        </div>
+        <h3 class="sec-title">⏰ PO Reminders</h3>
+        <div id="dash-po-remind" class="card"></div>
+        <h3 class="sec-title">📅 This Week (7 days)</h3>
+        <div class="tiles" id="dash-week"></div>
+    </section>
+
+    <!-- LINE MANAGEMENT -->
+    <section id="lineMgr">
+        <h2>➕ Manage Project Sites</h2>
+        <div class="card">
+            <h3>Add New Project Site</h3>
+            <div class="grid">
+                <div>
+                    <label>Project Site Name</label>
+                    <input type="text" id="new-line-name" placeholder="Hal. Sta. Barbara → Hamtik">
+                </div>
+                <div>
+                    <label>Target Poles</label>
+                    <input type="number" id="new-line-total" placeholder="0">
+                </div>
+                <div>
+                    <label>Total Shutdowns (optional)</label>
+                    <input type="number" id="new-line-shutdowns" placeholder="0" min="0">
+                </div>
+                <div style="align-self:end;">
+                    <button class="primary" onclick="addNewLine()">➕ Add</button>
+                </div>
+            </div>
+        </div>
+        
+        <h3>📋 Current Project Sites</h3>
+        <div id="lines-list"></div>
+    </section>
+
+    <!-- PO PAGE -->
+    <section id="poPage">
+        <h2>📄 PO</h2>
+        <div style="margin-bottom:14px"><button class="primary" onclick="openPOForm()">➕ Add PO</button></div>
+        <div class="card" id="po-form" style="display:none">
+            <h3 id="po-form-title">➕ New PO</h3>
+            <div class="grid" style="margin-top:8px">
+                <div><label>PO Number *</label><input type="text" id="po-no" placeholder="Hal. PO-001"></div>
+                <div><label>Date</label><input type="date" id="po-date"></div>
+                <div><label>Contractor *</label><select id="po-worker" onchange="poSel = new Set(); renderPOStructures()"></select></div>
+                <div><label>🔒 Total Amount (automatic)</label><input type="text" id="po-amount" readonly value="₱0.00" style="font-weight:700;background:#f1f5f9"></div>
+                <div><label>Prepared by</label><input type="text" id="po-prepared"></div>
+                <div style="grid-column: span 2;"><label>Note (optional)</label><input type="text" id="po-note"></div>
+            </div>
+            <p class="small-note" id="po-price-note" style="margin-top:12px"></p>
+            <h4 style="margin-top:10px">Select items to bill</h4>
+            <div class="grid" style="margin-bottom:6px">
+                <div><label>Project Site</label><select id="po-site-filter" onchange="renderPOStructures()"></select></div>
+                <div style="align-self:end"><button type="button" class="secondary" onclick="poSelectAll()">Select all visible</button></div>
+            </div>
+            <div id="po-structs"></div>
+            <div style="margin-top:14px"><button class="primary" onclick="savePO()">💾 Save PO</button> <button class="secondary" onclick="poPreviewForm()">👁️ Preview</button> <button class="secondary" onclick="closePOForm()">Cancel</button></div>
+        </div>
+        <div id="po-list"></div>
+    </section>
+
+    <!-- WORKERS PAGE -->
+    <section id="workersPage">
+        <h2>👷 Contractors</h2>
+        <div class="card">
+            <h3>➕ Add name</h3>
+            <div class="price-all" style="margin-top:10px">
+                <input type="text" id="wk-name" placeholder="Pangalan ng gumawa o subcon" onkeydown="if(event.key==='Enter') addWorkerName()">
+                <button type="button" class="primary" onclick="addWorkerName()">➕ Add</button>
+            </div>
+            <p class="small-note" style="margin-top:10px">Ang mga pangalang ilalagay mo rito ay lalabas sa dropdown ng <strong>Gumawa</strong> sa 🪜 Mga Hakbang at sa ⚡ Shutdown.</p>
+        </div>
+        <div id="wk-list"></div>
+    </section>
+
+    <!-- PRICES PAGE -->
+    <section id="hwPage">
+        <h2>🔩 Line Hardware</h2>
+        <div class="card">
+            <label>Select Structure</label>
+            <select id="hw-type" onchange="hwRender()"></select>
+            <div id="hw-list" style="margin-top:14px"></div>
+            <details class="stage" style="margin-top:16px"><summary>➕ Add part</summary><div style="padding:10px 0">
+            <div style="display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:end">
+                <div><label>Part name</label><input type="text" id="hw-new-name" placeholder="hal. Suspension Insulator"></div>
+                <div><label>Qty</label><input type="number" id="hw-new-qty" min="1" step="1" value="1"></div>
+                <button type="button" class="primary" onclick="hwAdd()">➕ Add</button>
+            </div></div></details>
+        </div>
+        <div class="card" style="margin-top:14px">
+            <h3>🧮 Calculate required parts</h3>
+            <p class="small-note">Ilagay ang dami ng structure sa bawat type. Iwanang blangko ang hindi gagamitin.</p>
+            <div id="hw-calc-types" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:8px"></div>
+            <button type="button" class="primary" style="margin-top:10px" onclick="hwCalc()">🧮 Calculate</button>
+            <div id="hw-calc-out" style="margin-top:12px"></div>
+        </div>
+    </section>
+    <section id="settingsPage">
+        <h2>⚙️ Settings</h2>
+        <div class="card">
+            <h3>💾 Backup</h3>
+            <p class="small-note">Ise-save ang lahat ng data: structures, PO, pirma, presyo, workers, at line hardware.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+                <button type="button" class="primary" onclick="backupDownload()">⬇️ Download backup</button>
+            </div>
+        </div>
+        <div class="card" style="margin-top:14px">
+            <h3>♻️ Restore</h3>
+            <p class="small-note">Papalitan nito ang LAHAT ng kasalukuyang data. Mag-backup muna bago mag-restore.</p>
+            <input type="file" accept=".json,application/json" onchange="restoreFromFile(this)" style="margin-top:8px">
+        </div>
+    </section>
+    <section id="pricesPage">
+        <h2>💲 Prices</h2>
+        <div class="card">
+            <h3>Step prices</h3>
+            <p class="small-note" style="margin:8px 0 12px">Ang <strong>Roadside, Excavation, Dragging</strong> ay may sariling presyo, at ang <strong>Anchor Screw / Lag</strong> ay presyo kada piraso. Pareho ito sa lahat ng Structure Type.</p>
+            <div class="stages" id="pr-flat"></div>
+        </div>
+        <div class="card">
+            <h3>Price per Structure Type</h3>
+            <p class="small-note" style="margin:8px 0 12px">Pindutin ang Type para makita at ma-edit ang presyo ng <strong>Erection, Transfer (Alpha, Bravo, Charlie), at Retrieve</strong>. Nakasulat din doon ang kumpletong presyo ng isang structure mula Erection hanggang Retrieve.</p>
+            <div class="stages" id="pr-types"></div>
+        </div>
+        <button class="primary" onclick="savePriceForm()">💾 Save Prices</button>
+    </section>
+
+    <!-- STEPS PAGE -->
+    <section id="stepsPage">
+        <h2>🪜 Steps</h2>
+        <div class="card">
+            <div class="grid">
+                <div><label>Project Site</label><select id="st-site" onchange="stepsSiteChanged()"></select></div>
+                <div><label>Mga Structure (pwedeng marami)</label>
+                    <details class="stage" id="st-pick"><summary><span class="sdtxt" id="st-pick-txt">Pumili ng structure</span></summary>
+                        <div class="stage-body"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><select id="st-filter-status" onchange="stepsFilterChanged()"><option value="">All statuses</option><option value="NOT STARTED">NOT STARTED</option><option value="IN PROGRESS">IN PROGRESS</option><option value="ALREADY PREPARED">ALREADY PREPARED</option><option value="TRANSFERRED">TRANSFERRED</option><option value="COMPLETED">COMPLETED</option><option value="CHANGED">CHANGED</option></select><select id="st-filter-type" onchange="stepsFilterChanged()"></select></div><div class="sd-list" id="st-pick-list"></div>
+                            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="secondary btn-sm" onclick="stPickAll(true)">Select all</button><button type="button" class="secondary btn-sm" onclick="stPickAll(false)">Clear all</button></div></div>
+                    </details></div>
+            </div>
+            <p class="small-note" id="st-hint" style="margin-top:10px">Piliin ang project site at ang mga structure. Kung marami ang pipiliin mo, ang petsa at gumawa na ilalagay mo ay mailalapat sa lahat ng napili.</p>
+        </div>
+        <div class="card" id="st-card" style="display:none">
+            <h3 id="st-title"></h3>
+            <p class="small-note" id="st-multi-note" style="display:none;margin-bottom:10px;background:#fff7dd;border-left:4px solid var(--gold);padding:8px 12px;border-radius:6px"></p>
+            <div class="grid">
+                <div id="st-pole-wrap"><label>Number of Poles</label><input type="number" id="st-pole-qty" min="1" value="1" onchange="resizeUnits()"></div>
+                <div id="st-remarks-wrap" style="grid-column: span 2;"><label>📝 Remarks / Reason for change</label><textarea id="st-remarks" placeholder="Hal: Ayaw pumayag ng may-ari ng lupa. Inilipat sa bagong lokasyon."></textarea></div>
+                    <div class="stages-wrap">
+                        <h4>Mga Hakbang <span class="small-note">(pindutin para buksan o isara)</span></h4>
+                        <div class="stages">
+                        <details class="stage" data-k="" onchange="stageBadge(this)">
+                            <summary>🚚 Roadside<span class="sbadge">Not yet</span></summary>
+                            <div class="stage-body"><p class="small-note">Each pole has its own date and contractor. Use a different contractor per pole if needed.</p><div id="st-roadside-list"></div><button type="button" class="secondary btn-sm" style="margin-top:8px" onclick="copyUnitsToAll('roadside')">Copy first to all</button><button type="button" class="clear-stage" onclick="clearStage(this)">✖ Clear step</button></div>
+                        </details>
+                        <details class="stage" data-k="" onchange="stageBadge(this)">
+                            <summary>⛏️ Excavation<span class="sbadge">Not yet</span></summary>
+                            <div class="stage-body"><p class="small-note">Each hole has its own date and contractor.</p><div id="st-excavation-list"></div><button type="button" class="secondary btn-sm" style="margin-top:8px" onclick="copyUnitsToAll('excavation')">Copy first to all</button><button type="button" class="clear-stage" onclick="clearStage(this)">✖ Clear step</button></div>
+                        </details>
+                        <details class="stage" data-k="" onchange="stageBadge(this)">
+                            <summary>🏗️ Erection<span class="sbadge">Not yet</span></summary>
+                            <div class="stage-body"><p class="small-note">Each pole has its own date and contractor. Use a different contractor per pole if needed.</p><div id="st-erection-list"></div><button type="button" class="secondary btn-sm" style="margin-top:8px" onclick="copyUnitsToAll('erection')">Copy first to all</button><button type="button" class="clear-stage" onclick="clearStage(this)">✖ Clear step</button></div>
+                        </details>
+                        <details class="stage" data-k="" onchange="stageBadge(this)">
+                            <summary>🔄 Transfer (Alpha / Bravo / Charlie)<span class="sbadge">Not yet</span></summary>
+                            <div class="stage-body"><p class="small-note" style="margin-bottom:8px">I-check ang phase, ilagay ang petsa at ang gumawa. Kapag walang pangalan, hindi ito kasali sa billing.</p>
+                                <div class="phase-grid">
+                                    <div><label class="checkbox-item"><input type="checkbox" id="st-trans-alpha"> Alpha</label><input type="date" id="st-trans-alpha-date" aria-label="Alpha date"><select id="st-transferAlpha-by" class="worker-sel" style="margin-top:6px"></select></div>
+                                    <div><label class="checkbox-item"><input type="checkbox" id="st-trans-bravo"> Bravo</label><input type="date" id="st-trans-bravo-date" aria-label="Bravo date"><select id="st-transferBravo-by" class="worker-sel" style="margin-top:6px"></select></div>
+                                    <div><label class="checkbox-item"><input type="checkbox" id="st-trans-charlie"> Charlie</label><input type="date" id="st-trans-charlie-date" aria-label="Charlie date"><select id="st-transferCharlie-by" class="worker-sel" style="margin-top:6px"></select></div>
+                                </div><button type="button" class="clear-stage" onclick="clearStage(this)">✖ Clear step</button></div>
+                        </details>
+                        <details class="stage" data-k="ret" onchange="stageBadge(this)">
+                            <summary>📦 Retrieve (Old Pole)<span class="sbadge">Not yet</span></summary>
+                            <div class="stage-body"><label>Retrieval Date</label><input type="date" id="st-retrieval-date">
+                                <label class="checkbox-item" style="margin-top:10px"><input type="checkbox" id="st-retrieval-complete"> Retrieval Complete</label><label style="margin-top:10px">👷 Gumawa</label><select id="st-retrieval-by" class="worker-sel"></select><button type="button" class="clear-stage" onclick="clearStage(this)">✖ Clear step</button></div>
+                        </details>
+                        </div>
+                    </div>
+            </div>
+            <div style="margin-top:15px;"><button class="primary" onclick="saveSteps()">💾 Save Steps</button></div>
+        </div>
+    </section>
+
+    <!-- SHUTDOWN PAGE -->
+    <section id="shutdownPage">
+        <h2>⚡ Shutdown</h2>
+        <div class="card">
+            <h3>📊 Shutdown summary per Project Site</h3>
+            <p class="small-note" style="margin-bottom:10px">Iisang shutdown ang bilang ng parehong petsa sa iisang project site. Ilagay ang Kabuuang Shutdown ng bawat project site para makita ang natitira.</p>
+            <div id="sd-summary" class="table-wrapper"></div>
+        </div>
+        <div class="card shutdown-card" id="sd-form">
+            <h3 id="sd-form-title">➕ Add Shutdown</h3>
+            <div class="grid" style="margin-top:8px">
+                <div><label>Project Site *</label><select id="sd-line" onchange="sdSiteChanged()"></select></div>
+                <div><label>Shutdown Date *</label><input type="date" id="sd-date"></div>
+                <div style="grid-column: span 2;"><label>Notes / Details (optional)</label><input type="text" id="sd-note" placeholder="Hal. Shutdown sa Sabado"></div>
+            </div>
+            <h4 style="margin-top:16px">Who will do it and which structures</h4>
+            <div id="sd-rows"></div>
+            <button type="button" class="secondary" onclick="sdAddRow()">➕ Dagdag Gumawa</button>
+            <div style="margin-top:14px"><button class="primary" id="sd-save" onclick="addShutdownGlobal()">💾 Save Shutdown</button> <button class="secondary" id="sd-cancel" style="display:none" onclick="sdReset()">Cancel edit</button></div>
+        </div>
+        <div id="sd-lists"></div>
+    </section>
+
+    <!-- LINES HUB: lahat ng linya sa iisang page -->
+    <section id="linesHub">
+        <h2>📍 Project Sites</h2>
+        <p class="small-note" style="margin-bottom:12px">Piliin ang project site para buksan ang page nito.</p>
+        <div id="lines-hub-list" class="hub-grid"></div>
+    </section>
+
+    <!-- DYNAMIC LINE PAGES -->
+    <div id="dynamic-sections"></div>
+
+    <!-- REPORT -->
+    <section id="report">
+        <h2>📋 Full Report and Totals</h2>
+        <div id="report-content"></div>
+        <button class="primary" onclick="window.print()" style="margin-top:20px;">🖨️ Print Report</button>
+    </section>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="sign-modal" class="po-modal" style="display:none" onclick="if(event.target===this) signCancel()">
+    <div style="max-width:620px;margin:40px auto 0;background:#fff;color:#17283b;border-radius:12px;padding:18px 20px">
+        <h3 id="sign-title" style="margin:0 0 6px;color:#0b3a5e"></h3>
+        <p class="small-note" style="margin:0 0 10px">Pumirma sa loob ng kahon. Kapag napirmahan, mamarkahang BAYAD NA ang PO at hindi na ito mababago.</p>
+        <canvas id="sign-canvas" width="600" height="220" style="width:100%;height:auto;border:2px dashed #9fb0c3;border-radius:8px;background:#fbfdff;touch-action:none;cursor:crosshair"></canvas>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap">
+            <button type="button" class="secondary btn-sm" onclick="signClear()">🧹 Clear</button>
+            <button type="button" class="secondary btn-sm" onclick="signCancel()">Cancel</button>
+            <button type="button" class="primary" onclick="signConfirm()">✅ Sign and mark as PAID</button>
+        </div>
+    </div>
+</div>
+<div id="po-modal" class="po-modal" style="display:none" onclick="if(event.target===this) poClosePreview()">
+    <div class="po-wrap">
+        <div class="po-modal-actions"><button class="primary" onclick="poPrint()">🖨️ Export to PDF</button><button class="secondary" onclick="poClosePreview()">Isara</button></div>
+        <div class="po-sheet" id="po-sheet"></div>
+        <p class="small-note po-modal-actions" style="color:#e8eef6;margin-top:8px">Sa print window, piliin ang <strong>Save as PDF</strong> bilang printer.</p>
+    </div>
+</div>
+<script>
+// === DATA ===
+let lines = JSON.parse(localStorage.getItem('proj_lines') || '[]');
+let data = JSON.parse(localStorage.getItem('proj_data') || '{}');
+let shutdowns = JSON.parse(localStorage.getItem('proj_shutdowns') || '{}');
+let editingId = null;
+
+// === POLE COUNT BY TYPE ===
+function getDefaultPoles(type) {
+    const map = { B:1, C:1, D:1, E:1, HT:2, HS:2, '3T':3, '3C':3, '3D':3 };
+    return map[type] || 1;
+}
+
+// === SAVE/LOAD ===
+function saveLines() {
+    localStorage.setItem('proj_lines', JSON.stringify(lines));
+    renderLinesNav();
+    renderLinesList();
+    updateDashboard();
+}
+function saveAllData() {
+    localStorage.setItem('proj_data', JSON.stringify(data));
+    updateDashboard();
+}
+function saveShutdowns() {
+    localStorage.setItem('proj_shutdowns', JSON.stringify(shutdowns));
+}
+function deleteShutdown(lineId, shutdownId) {
+    if(!confirm('Burahin ang shutdown record?')) return;
+    shutdowns[lineId] = (shutdowns[lineId] || []).filter(x => x.id !== shutdownId);
+    saveShutdowns();
+    renderShutdownSummary();
+    updateDashboard();
+}
+function renderShutdowns(lineId) {
+    const container = document.getElementById(lineId + '-shutdown-list');
+    if(!container) return;
+    const records = [...(shutdowns[lineId] || [])].sort((a, b) => a.date.localeCompare(b.date));
+    const planned = parseInt((lines.find(l => l.id === lineId) || {}).totalShutdowns) || 0;
+    if(!records.length) { container.innerHTML = '<p class="small-note">No shutdown recorded for this project site yet.</p>'; return; }
+    container.innerHTML = '<div class="shutdown-list">' + records.map((sd, i) => {
+        const asg = (sd.assignments || []).map(a => {
+            const nos = (a.structIds || []).map(id => (data[lineId] || []).find(x => x.id === id)).filter(Boolean)
+                .sort((x, y) => String(x.no).localeCompare(String(y.no), undefined, { numeric: true })).map(x => escapeHtml(x.no));
+            return '<div class="sd-assign">👷 <strong>' + escapeHtml(a.worker) + ':</strong> ' + (nos.join(', ') || '-') + ' <span class="small-note">(' + nos.length + ')</span></div>';
+        }).join('');
+        return '<div class="shutdown-item"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap"><strong>Shutdown #' + (i + 1) + (planned ? ' / ' + planned : '') + '</strong>' +
+          '<span><button class="edit-btn" onclick="sdEdit(\'' + lineId + '\', \'' + sd.id + '\')">✏️ Edit</button> <button class="danger btn-sm" onclick="deleteShutdown(\'' + lineId + '\', \'' + sd.id + '\')">🗑️ Delete</button></span></div>' +
+          '<p><strong>📅 ' + fmtDate(sd.date) + '</strong></p>' +
+          (planned ? '<p class="small-note">Natitira pa pagkatapos nito: ' + Math.max(0, planned - (i + 1)) + ' shutdown</p>' : '') +
+          (sd.note ? '<p>' + escapeHtml(sd.note) + '</p>' : '') + (asg || '<p class="small-note">No contractor assigned yet.</p>') + '</div>';
+    }).join('') + '</div>';
+}
+document.addEventListener('click', function(e) {
+    document.querySelectorAll('details.stage[open]').forEach(d => { if(!d.contains(e.target)) d.open = false; });
+});
+function clearStage(btn) {
+    const det = btn.closest('details.stage');
+    det.querySelectorAll('input[type=date]').forEach(i => i.value = '');
+    det.querySelectorAll('input[type=checkbox]').forEach(c => c.checked = false);
+    det.querySelectorAll('input[type=text],input[type=number],select.worker-sel').forEach(i => i.value = '');
+    stageBadge(det);
+}
+document.addEventListener('change', function(e) {
+    const t = e.target;
+    if(t.type === 'checkbox' && /-trans-(alpha|bravo|charlie)$/.test(t.id) && !t.checked) {
+        const d = document.getElementById(t.id + '-date');
+        if(d) d.value = '';
+        stageBadge(t.closest('details.stage'));
+    }
+});
+function stageBadge(det) {
+    const badge = det.querySelector('.sbadge');
+    if(!badge) return;
+    const dates = [...det.querySelectorAll('input[type=date]')];
+    const filled = dates.filter(d => d.value);
+    let text = 'Wala pa', cls = 'sbadge';
+    if(filled.length) {
+        cls += filled.length === dates.length ? ' ok' : ' part';
+        text = dates.length === 1 ? '✓ ' + fmtDate(filled[0].value) : '✓ ' + filled.length + ' / ' + dates.length;
+    }
+    if(det.dataset.k === 'ret' && det.querySelector('input[type=checkbox]').checked) { text = (filled.length ? '✓ ' + fmtDate(filled[0].value) : '') + ' · TAPOS'; cls = 'sbadge ok'; }
+    badge.textContent = text.trim();
+    badge.className = cls;
+}
+function refreshStageBadges() {
+    document.querySelectorAll('#st-card details.stage').forEach(d => { stageBadge(d); d.open = false; });
+}
+function phaseInfo(item) {
+    const a = !!(item.transferAlpha && item.transferAlphaDate);
+    const b = !!(item.transferBravo && item.transferBravoDate);
+    const c = !!(item.transferCharlie && item.transferCharlieDate);
+    const cur = c ? 'Charlie' : b ? 'Bravo' : a ? 'Alpha' : '-';
+    return { a, b, c, cur, transferred: a && b && c, pending: a && b && c && !item.retrievalComplete };
+}
+function workersCell(item) {
+    const L = [['Roadside','roadsideBy'],['Excavation','excavationBy'],['Dragging','draggingBy'],['Erection','erectionBy'],['Anchor/Lag','anchorBy'],['Alpha','transferAlphaBy'],['Bravo','transferBravoBy'],['Charlie','transferCharlieBy'],['Retrieve','retrievalBy']].filter(x => item[x[1]]);
+    return '<td style="white-space:normal;min-width:150px">' + (L.length ? L.map(x => '<div class="small-note" style="margin:1px 0"><strong>' + x[0] + ':</strong> ' + escapeHtml(item[x[1]]) + '</div>').join('') : '-') + '</td>';
+}
+function updateWorkersList() {
+    let dl = document.getElementById('all-workers');
+    if(!dl) { dl = document.createElement('datalist'); dl.id = 'all-workers'; document.body.appendChild(dl); }
+    const names = new Set();
+    Object.values(shutdowns).forEach(arr => (arr || []).forEach(sd => (sd.assignments || []).forEach(a => { if(a.worker) names.add(a.worker.trim()); })));
+    Object.values(data).forEach(arr => (arr || []).forEach(x => {
+        [x.roadsideBy, x.excavationBy, x.draggingBy, x.erectionBy, x.anchorBy, x.transferBy, x.transferAlphaBy, x.transferBravoBy, x.transferCharlieBy, x.retrievalBy].forEach(n => { if(n) names.add(n); });
+    }));
+    dl.innerHTML = [...names].sort().map(n => '<option value="' + escapeHtml(n) + '">').join('');
+}
+function anchorCell(item) {
+    const d = item.anchorDate, q = item.anchorQty;
+    return '<td class="mk' + (d ? ' y' : '') + '" title="' + (d ? fmtDate(d) : '') + '">' + (d ? '✔' + (q ? ' <small>×' + q + '</small>' : '') : '○') + '</td>';
+}
+function mk(date) {
+    return '<td class="mk' + (date ? ' y' : '') + '" title="' + (date && date !== 'tapos' ? fmtDate(date) : '') + '">' + (date ? '✔' : '○') + '</td>';
+}
+function phaseChips(item) {
+    const p = phaseInfo(item);
+    const m = (n, ok) => '<b class="' + (ok ? 'y' : '') + '">' + n + (ok ? ' ✔' : ' ○') + '</b>';
+    return '<span class="ph">' + m('A', p.a) + ' ' + m('B', p.b) + ' ' + m('C', p.c) + '</span>' +
+      (p.pending ? '<br><span class="status changed" style="margin-top:4px">🔄 Transferred, di pa retrieved</span>' : '');
+}
+function renderShutdownSummary() {
+    const box = document.getElementById('sd-summary');
+    if(!box) return;
+    const sel = document.getElementById('sd-line');
+    if(sel) {
+        const cur = sel.value;
+        sel.innerHTML = lines.map(l => '<option value="' + l.id + '"' + (l.id === cur ? ' selected' : '') + '>' + escapeHtml(l.name) + '</option>').join('');
+    }
+    if(sel && !document.querySelector('#sd-rows .sd-row')) sdAddRow();
+    if(!lines.length) {
+        box.innerHTML = '<p style="color:#888;padding:14px">No project site yet.</p>';
+        document.getElementById('sd-lists').innerHTML = '';
+        return;
+    }
+    let tDone = 0, tPlanned = 0;
+    const rows = lines.map(l => {
+        const recs = shutdowns[l.id] || [];
+        const planned = parseInt(l.totalShutdowns) || 0;
+        const last = recs.map(r => r.date).sort().pop();
+        tDone += recs.length; tPlanned += planned;
+        return '<tr><td><strong>' + escapeHtml(l.name) + '</strong></td>' +
+          '<td><input type="number" min="0" value="' + planned + '" style="width:90px" onchange="saveShutdownTotal(\'' + l.id + '\', this.value)"></td>' +
+          '<td>' + recs.length + '</td>' +
+          '<td><strong>' + (planned ? Math.max(0, planned - recs.length) : '-') + '</strong></td>' +
+          '<td>' + (last ? fmtDate(last) : '-') + '</td></tr>';
+    }).join('');
+    box.innerHTML = '<table style="min-width:620px"><thead><tr><th>Project Site</th><th>Total Shutdowns</th><th>Recorded</th><th>Remaining</th><th>Last Shutdown</th></tr></thead><tbody>' + rows +
+      '<tr><td><strong>KABUUAN</strong></td><td><strong>' + tPlanned + '</strong></td><td><strong>' + tDone + '</strong></td><td><strong>' + (tPlanned ? Math.max(0, tPlanned - tDone) : '-') + '</strong></td><td></td></tr></tbody></table>';
+    document.getElementById('sd-lists').innerHTML = lines.map(l =>
+        '<h3 style="margin:18px 0 8px;color:var(--navy)">📍 ' + escapeHtml(l.name) + '</h3><div id="' + l.id + '-shutdown-list"></div>').join('');
+    lines.forEach(l => renderShutdowns(l.id));
+}
+function saveShutdownTotal(lineId, val) {
+    const l = lines.find(x => x.id === lineId);
+    if(!l) return;
+    l.totalShutdowns = Math.max(0, parseInt(val) || 0);
+    saveLines();
+    renderShutdownSummary();
+    updateDashboard();
+}
+let sdEditId = null;
+function sdStructs() { return sortedStructures(data[document.getElementById('sd-line').value] || []); }
+function sdAddRow(a) {
+    a = a || { worker: '', structIds: [] };
+    const box = document.getElementById('sd-rows');
+    const row = document.createElement('div');
+    row.className = 'sd-row';
+    row.innerHTML = '<div><label>Contractor</label><select class="sd-worker worker-sel"></select></div>' +
+      '<div><label>Mga Structure</label><details class="stage"><summary><span class="sdtxt">Pumili ng structure</span></summary><div class="stage-body"><div class="sd-list"></div>' +
+      '<button type="button" class="secondary btn-sm" style="margin-top:10px" onclick="sdPickAll(this)">Select all</button></div></details></div>' +
+      '<button type="button" class="danger sd-del" onclick="sdRemoveRow(this)">✖ Alisin</button>';
+    box.appendChild(row);
+    fillWorkerSelects();
+    setWorkerSel(row.querySelector('.sd-worker'), a.worker || '');
+    sdBuildList(row, new Set(a.structIds || []));
+    sdUpdateAll();
+}
+function sdBuildList(row, checked) {
+    const list = row.querySelector('.sd-list'), st = sdStructs();
+    list.innerHTML = st.length ? st.map(x => '<label class="po-row"><input type="checkbox" class="sd-chk" value="' + x.id + '"' + (checked.has(x.id) ? ' checked' : '') + '><span><strong>' + escapeHtml(x.no) + '</strong> · ' + escapeHtml(x.type) + '</span></label>').join('')
+      : '<p class="small-note">No structure in this project site yet.</p>';
+}
+function sdUpdateAll() {
+    const rows = [...document.querySelectorAll('#sd-rows .sd-row')];
+    const chosen = rows.map(r => new Set([...r.querySelectorAll('.sd-chk:checked')].map(c => c.value)));
+    rows.forEach((r, i) => {
+        const others = new Set(); chosen.forEach((set, j) => { if(j !== i) set.forEach(v => others.add(v)); });
+        r.querySelectorAll('.sd-chk').forEach(c => { c.disabled = others.has(c.value); c.closest('label').classList.toggle('off', c.disabled); });
+        const nos = [...r.querySelectorAll('.sd-chk:checked')].map(c => c.parentElement.querySelector('strong').textContent);
+        r.querySelector('.sdtxt').textContent = nos.length ? nos.join(', ') + ' (' + nos.length + ')' : 'Pumili ng structure';
+    });
+}
+function sdPickAll(btn) { btn.closest('.sd-row').querySelectorAll('.sd-chk:not(:disabled)').forEach(c => c.checked = true); sdUpdateAll(); }
+function sdRemoveRow(btn) { btn.closest('.sd-row').remove(); if(!document.querySelector('#sd-rows .sd-row')) sdAddRow(); sdUpdateAll(); }
+function sdSiteChanged() {
+    document.querySelectorAll('#sd-rows .sd-row').forEach(r => sdBuildList(r, new Set()));
+    sdUpdateAll();
+}
+document.addEventListener('change', function(e) { if(e.target.classList && e.target.classList.contains('sd-chk')) sdUpdateAll(); });
+function sdReset() {
+    sdEditId = null;
+    document.getElementById('sd-date').value = '';
+    document.getElementById('sd-note').value = '';
+    document.getElementById('sd-rows').innerHTML = '';
+    document.getElementById('sd-form-title').textContent = '➕ Magdagdag ng Shutdown';
+    document.getElementById('sd-save').textContent = '💾 Save Shutdown';
+    document.getElementById('sd-cancel').style.display = 'none';
+    sdAddRow();
+}
+function sdEdit(lineId, id) {
+    const sd = (shutdowns[lineId] || []).find(x => x.id === id);
+    if(!sd) return;
+    sdEditId = id;
+    document.getElementById('sd-line').value = lineId;
+    document.getElementById('sd-date').value = sd.date;
+    document.getElementById('sd-note').value = sd.note || '';
+    document.getElementById('sd-rows').innerHTML = '';
+    (sd.assignments && sd.assignments.length ? sd.assignments : [{ worker: '', structIds: [] }]).forEach(a => sdAddRow(a));
+    document.getElementById('sd-form-title').textContent = '✏️ I-edit ang Shutdown';
+    document.getElementById('sd-save').textContent = '💾 Update Shutdown';
+    document.getElementById('sd-cancel').style.display = 'inline-block';
+    document.getElementById('sd-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function addShutdownGlobal() {
+    const lineId = document.getElementById('sd-line').value;
+    const date = document.getElementById('sd-date').value;
+    const note = document.getElementById('sd-note').value.trim();
+    if(!lineId) { alert('Pumili muna ng Project Site.'); return; }
+    if(!date) { alert('Piliin muna ang Shutdown Date.'); return; }
+    const assignments = [];
+    for(const r of document.querySelectorAll('#sd-rows .sd-row')) {
+        const worker = r.querySelector('.sd-worker').value.trim();
+        const ids = [...r.querySelectorAll('.sd-chk:checked')].map(c => Number(c.value));
+        if(!worker && !ids.length) continue;
+        if(!worker) { alert('Ilagay ang pangalan ng gumawa para sa napiling mga structure.'); return; }
+        if(!ids.length) { alert('Pumili ng structure para kay ' + worker + '.'); return; }
+        assignments.push({ worker, structIds: ids });
+    }
+    if(!shutdowns[lineId]) shutdowns[lineId] = [];
+    if(sdEditId) {
+        Object.keys(shutdowns).forEach(k => { shutdowns[k] = shutdowns[k].filter(x => x.id !== sdEditId); });
+    }
+    const same = shutdowns[lineId].find(x => x.date === date);
+    let merged = false;
+    if(same) { mergeShutdownInto(same, { note, assignments }); merged = true; }
+    else shutdowns[lineId].push({ id: sdEditId || 'sd_' + Date.now(), date, note, assignments });
+    saveShutdowns();
+    const wasEdit = !!sdEditId;
+    sdReset();
+    renderShutdownSummary();
+    updateDashboard();
+    notify(merged ? 'Pinagsama sa shutdown na may parehong petsa. Isang shutdown lang ang bilang.' : wasEdit ? 'Na-update ang shutdown.' : 'Na-save ang shutdown.');
+}
+let pos = JSON.parse(localStorage.getItem('proj_pos') || '[]');
+let poEditId = null;
+function savePOs() { localStorage.setItem('proj_pos', JSON.stringify(pos)); }
+const STAGE_BY = [['Roadside','roadsideBy'],['Excavation','excavationBy'],['Dragging','draggingBy'],['Erection','erectionBy'],['Anchor/Lag','anchorBy'],['Transfer','transferBy'],['Transfer Alpha','transferAlphaBy'],['Transfer Bravo','transferBravoBy'],['Transfer Charlie','transferCharlieBy'],['Retrieve','retrievalBy']];
+function allWorkers() {
+    const names = new Set(workers.map(w => w.trim()));
+    Object.values(shutdowns).forEach(arr => (arr || []).forEach(sd => (sd.assignments || []).forEach(a => { if(a.worker) names.add(a.worker.trim()); })));
+    Object.values(data).forEach(arr => (arr || []).forEach(x => {
+        STAGE_BY.forEach(([l, k]) => { if(x[k]) names.add(x[k].trim()); });
+    }));
+    return [...names].filter(Boolean).sort((a, b) => a.localeCompare(b));
+}
+function workerStages(item, name) {
+    const n = name.trim().toLowerCase(), st = [];
+    STAGE_BY.forEach(([l, k]) => { if((item[k] || '').trim().toLowerCase() === n) st.push(l); });
+    return st;
+}
+const STEP_DEFS = [
+    { k: 'roadside', l: 'Roadside', by: 'roadsideBy', done: x => !!x.roadsideDate, pk: 'roadside' },
+    { k: 'excavation', l: 'Excavation', by: 'excavationBy', done: x => !!x.excavationDate, pk: 'excavation' },
+    { k: 'dragging', l: 'Dragging', by: 'draggingBy', done: x => !!x.draggingDate, pk: 'dragging' },
+    { k: 'anchor', l: 'Anchor/Lag', by: 'anchorBy', done: x => !!x.anchorDate, pk: 'anchor' },
+    { k: 'erection', l: 'Erection', by: 'erectionBy', done: x => !!x.erectionDate, pk: 'erection' },
+    { k: 'transferAlpha', l: 'Transfer Alpha', by: 'transferAlphaBy', legacy: 'transferBy', done: x => !!(x.transferAlpha && x.transferAlphaDate), pk: 'transferAlpha' },
+    { k: 'transferBravo', l: 'Transfer Bravo', by: 'transferBravoBy', legacy: 'transferBy', done: x => !!(x.transferBravo && x.transferBravoDate), pk: 'transferBravo' },
+    { k: 'transferCharlie', l: 'Transfer Charlie', by: 'transferCharlieBy', legacy: 'transferBy', done: x => !!(x.transferCharlie && x.transferCharlieDate), pk: 'transferCharlie' },
+    { k: 'retrieval', l: 'Retrieve', by: 'retrievalBy', done: x => !!(x.retrievalDate || x.retrievalComplete), pk: 'retrieval' }
+];
+const peso = v => '₱' + Number(v || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const sameName = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+const FLAT_KEYS = ['roadside', 'excavation', 'dragging', 'anchor'];
+function stepPrice(item, d) {
+    if(d.pk === 'anchor') return (parseFloat(prices.flat.anchor) || 0) * (parseInt(item.anchorQty) || 0);
+    if(FLAT_KEYS.includes(d.pk)) return parseFloat(prices.flat[d.pk]) || 0;
+    return parseFloat((prices.types[item.type] || {})[d.pk]) || 0;
+}
+function stepName(item, d) { return String(item[d.by] || (d.legacy ? item[d.legacy] : '') || '').trim(); }
+function workerSteps(item, worker) { return STEP_DEFS.filter(d => sameName(stepName(item, d), worker) && d.done(item)); }
+let poSel = new Set();
+function poBilled(worker) {
+    const billed = {};
+    pos.filter(x => x.id !== poEditId && sameName(x.worker, worker)).forEach(x => x.items.forEach(i => {
+        const key = i.lineId + '|' + i.structId; billed[key] = billed[key] || new Set();
+        if(i.steps) i.steps.forEach(k => billed[key].add(k)); else STEP_DEFS.forEach(d => billed[key].add(d.k));
+    }));
+    return billed;
+}
+function unitSteps(item, worker) {
+    const poles = Math.max(1, parseInt(item.poles) || 1);
+    const ePrice = parseFloat((prices.types[item.type] || {}).erection) || 0;
+    const xPrice = parseFloat(prices.flat.excavation) || 0, out = [];
+    const rPrice = parseFloat((prices.flat || {}).roadside) || 0;
+    const dPrice = parseFloat((prices.flat || {}).dragging) || 0;
+    unitsOf(item, 'roadside').forEach((u, i) => {
+        if(u.date && sameName(u.by, worker)) out.push({ k: 'roadside:' + i, base: 'roadside', l: 'Roadside Pole ' + (i + 1), price: rPrice });
+    });
+    unitsOf(item, 'dragging').forEach((u, i) => {
+        if(u.date && sameName(u.by, worker)) out.push({ k: 'dragging:' + i, base: 'dragging', l: 'Dragging Pole ' + (i + 1), price: dPrice });
+    });
+    unitsOf(item, 'erection').forEach((u, i) => {
+        if(u.date && sameName(u.by, worker)) out.push({ k: 'erection:' + i, base: 'erection', l: 'Erection Poste ' + (i + 1), price: ePrice });
+    });
+    unitsOf(item, 'excavation').forEach((u, i) => {
+        if(u.date && sameName(u.by, worker)) out.push({ k: 'excavation:' + i, base: 'excavation', l: 'Excavation Butas ' + (i + 1), price: xPrice });
+    });
+    return out;
+}
+function poInfo(lineId, item, worker, billed) {
+    const key = lineId + '|' + item.id, b = billed[key] || new Set();
+    const isBilled = s => b.has(s.k) || b.has(s.base);
+    const others = workerSteps(item, worker)
+        .filter(d => d.pk !== 'erection' && d.pk !== 'excavation' && d.pk !== 'roadside' && d.pk !== 'dragging')
+        .map(d => ({ k: d.k, base: d.k, l: d.k === 'anchor' ? 'Anchor/Lag ×' + (parseInt(item.anchorQty) || 0) + ' pc' : d.l, price: stepPrice(item, d) }));
+    const all = unitSteps(item, worker).concat(others);
+    const avail = all.filter(s => !isBilled(s));
+    const steps = avail.map(s => ({ k: s.k, l: s.l, price: s.price }));
+    return { key, all, avail, steps, details: steps, amt: steps.reduce((t, d) => t + d.price, 0) };
+}
+function poCalc() {
+    const worker = document.getElementById('po-worker').value, out = [];
+    if(!worker) return out;
+    const billed = poBilled(worker);
+    poSel.forEach(key => {
+        const [lineId, sid] = key.split('|');
+        const item = (data[lineId] || []).find(x => String(x.id) === sid);
+        if(!item) return;
+        const info = poInfo(lineId, item, worker, billed);
+        if(!info.avail.length) return;
+        out.push({ lineId, structId: item.id, steps: info.avail.map(d => d.k), details: info.details, amount: info.amt });
+    });
+    return out;
+}
+function poUpdateTotal() {
+    const total = poCalc().reduce((t, i) => t + i.amount, 0);
+    document.getElementById('po-amount').value = peso(total);
+}
+document.addEventListener('change', function(e) {
+    const c = e.target;
+    if(c.classList && c.classList.contains('po-chk')) { if(c.checked) poSel.add(c.value); else poSel.delete(c.value); poUpdateTotal(); }
+});
+function renderPO() {
+    const box = document.getElementById('po-list');
+    if(!box) return;
+    if(!pos.length) { box.innerHTML = '<div class="card" style="color:#888">No PO yet. Press ➕ Add PO.</div>'; return; }
+    const rows = [...pos].sort((a, b) => (b.date || '').localeCompare(a.date || '') || String(a.poNo).localeCompare(String(b.poNo), undefined, { numeric: true })).map(po => {
+        const bySite = {};
+        po.items.forEach(it => {
+            const line = lines.find(l => l.id === it.lineId);
+            const st = (data[it.lineId] || []).find(x => x.id === it.structId);
+            if(!line || !st) return;
+            (bySite[line.name] = bySite[line.name] || []).push(st.no + ' (' + st.type + ')' + (it.amount ? ' ' + peso(it.amount) : ''));
+        });
+        const txt = Object.keys(bySite).map(n => '<div>📍 <strong>' + escapeHtml(n) + ':</strong> ' + escapeHtml(bySite[n].join(', ')) + '</div>').join('') || '<span class="small-note">No structure</span>';
+        const status = po.paid ? '<span class="status done">✅ BAYAD NA</span><div class="small-note">' + fmtDate(po.paidDate) + '</div>' : '<span class="status pending">⏳ HINDI PA BAYAD</span>';
+        return '<tr><td><strong style="color:#d32f2f">' + escapeHtml(po.poNo) + '</strong></td><td>' + fmtDate(po.date) + '</td><td>' + escapeHtml(po.worker) + '</td>' +
+          '<td class="po-lines" style="white-space:normal;min-width:260px">' + txt + '</td><td><strong>' + (po.amount ? peso(po.amount) : '-') + '</strong></td><td>' + status + '</td>' +
+          '<td style="white-space:normal;min-width:190px"><button class="edit-btn" onclick="poPreviewById(\'' + po.id + '\')">👁️ Preview</button> <button class="edit-btn" onclick="openPOForm(\'' + po.id + '\')">✏️ Edit</button> ' +
+          '<button class="secondary btn-sm" onclick="signPO(\'' + po.id + '\')"' + (po.signature ? ' disabled' : '') + '>' + (po.signature ? '✅ Signed' : '✍️ Sign') + '</button> <button class="danger btn-sm" onclick="deletePO(\'' + po.id + '\')">🗑️</button></td></tr>';
+    }).join('');
+    box.innerHTML = '<div class="table-wrapper"><table style="min-width:860px"><thead><tr><th>PO No.</th><th>Date</th><th>Contractor</th><th>Structures (Project Site)</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+// Awtomatikong PO number: PO + taon + 3-digit na sunod-sunod (hal. PO2026001, PO2026002, PO2027001)
+function nextPoNo() {
+    const prefix = 'PO' + new Date().getFullYear();
+    const used = pos.filter(p => String(p.poNo || '').toUpperCase().startsWith(prefix))
+        .map(p => parseInt(String(p.poNo).slice(prefix.length), 10) || 0);
+    const next = (used.length ? Math.max(...used) : 0) + 1;
+    return prefix + String(next).padStart(3, '0');
+}
+function openPOForm(id) {
+    poEditId = id || null;
+    const po = id ? pos.find(x => x.id === id) : null;
+    if(po && po.signature) { alert('Naka-pirma na ang PO na ito, hindi na mababago.'); poEditId = null; return; }
+    if(po && po.paid && !confirm('BAYAD NA ang PO na ito. I-e-edit pa rin?')) { poEditId = null; return; }
+    document.getElementById('po-form').style.display = 'block';
+    document.getElementById('po-form-title').textContent = po ? '✏️ I-edit ang PO' : '➕ Bagong PO';
+    document.getElementById('po-no').value = po ? po.poNo : nextPoNo();
+    document.getElementById('po-date').value = po ? po.date || '' : '';
+    document.getElementById('po-note').value = po ? po.note || '' : '';
+    document.getElementById('po-prepared').value = po ? po.preparedBy || '' : '';
+    const sel = document.getElementById('po-worker');
+    const names = allWorkers();
+    if(po && !names.includes(po.worker)) names.push(po.worker);
+    sel.innerHTML = '<option value="">— Select contractor —</option>' + names.map(n => '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>').join('');
+    sel.value = po ? po.worker : '';
+    document.getElementById('po-site-filter').innerHTML = '<option value="">All project sites</option>' + lines.map(l => '<option value="' + l.id + '">' + escapeHtml(l.name) + '</option>').join('');
+    poSel = new Set(po ? po.items.map(i => i.lineId + '|' + i.structId) : []);
+    renderPOStructures();
+    document.getElementById('po-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function closePOForm() { document.getElementById('po-form').style.display = 'none'; poEditId = null; poSel = new Set(); }
+function renderPOStructures() {
+    const box = document.getElementById('po-structs');
+    const worker = document.getElementById('po-worker').value;
+    const filter = document.getElementById('po-site-filter').value;
+    const anyPrice = Object.keys(prices.flat).length || Object.keys(prices.types).length;
+    document.getElementById('po-price-note').textContent = anyPrice ? '' : '⚠️ Wala pang presyo sa 💲 Prices, kaya ₱0.00 ang Amount hangga\'t hindi ito nalalagyan.';
+    if(!worker) { box.innerHTML = '<p class="small-note">Select a contractor first to see their structures across all project sites.</p>'; poUpdateTotal(); return; }
+    const billed = poBilled(worker);
+    let html = '', found = 0;
+    lines.forEach(line => {
+        if(filter && filter !== line.id) return;
+        const sdIds = new Set();
+        (shutdowns[line.id] || []).forEach(sd => (sd.assignments || []).forEach(a => { if(sameName(a.worker, worker)) (a.structIds || []).forEach(id => sdIds.add(id)); }));
+        const list = (data[line.id] || []).filter(x => workerStages(x, worker).length || sdIds.has(x.id))
+            .sort((a, b) => String(a.no).localeCompare(String(b.no), undefined, { numeric: true, sensitivity: 'base' }));
+        if(!list.length) return;
+        found += list.length;
+        html += '<div class="po-site" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">📍 ' + escapeHtml(line.name) + ' <button type="button" class="secondary btn-sm" onclick="poPickSite(\'' + line.id + '\')">Select all here</button></div><div class="po-grid">' + list.map(x => {
+            const info = poInfo(line.id, x, worker, billed), off = !info.avail.length;
+            const noPrice = !off && info.details.some(d => !d.price);
+            const miss = off ? [] : info.steps.filter(d => !d.price).map(d => d.k === 'anchor' ? 'Anchor/Lag (walang dami o presyo)' : d.l);
+            const typeMiss = info.steps.some(d => !d.price && !FLAT_KEYS.includes(d.k));
+            const unnamed = STEP_DEFS.filter(d => d.done(x) && !stepName(x, d)).map(d => d.l);
+            const note = (off ? (info.all.length ? 'nasa ibang PO na' : 'wala pang tapos na hakbang') : info.details.map(d => d.l).join(', ') + (miss.length ? ' · ⚠ walang presyo: ' + miss.join(', ') + (typeMiss ? ' (Type ' + x.type + ')' : '') : '')) + (unnamed.length ? ' · ⚠ walang pangalan (hindi kasali): ' + unnamed.join(', ') : '');
+            return '<label class="po-row' + (off ? ' off' : '') + '"><input type="checkbox" class="po-chk" value="' + info.key + '"' + (off ? ' disabled' : (poSel.has(info.key) ? ' checked' : '')) + '>' +
+              '<span><strong>' + escapeHtml(x.no) + '</strong> · ' + escapeHtml(x.type) + (off ? '' : ' · <strong>' + peso(info.amt) + '</strong>') + '<small>' + escapeHtml(note) + '</small></span></label>';
+        }).join('') + '</div>';
+    });
+    box.innerHTML = found ? html : '<p class="small-note">No structure assigned to this contractor yet' + (filter ? ' sa project site na ito' : '') + '.</p>';
+    poUpdateTotal();
+}
+function poSelectAll() { document.querySelectorAll('.po-chk:not(:disabled)').forEach(c => { c.checked = true; poSel.add(c.value); }); poUpdateTotal(); }
+function poPickSite(lineId) {
+    document.querySelectorAll('.po-chk:not(:disabled)').forEach(c => { if(c.value.startsWith(lineId + '|')) { c.checked = true; poSel.add(c.value); } });
+    poUpdateTotal();
+}
+function savePO() {
+    const poNo = document.getElementById('po-no').value.trim();
+    const worker = document.getElementById('po-worker').value;
+    if(!poNo) { alert('Ilagay ang PO Number.'); return; }
+    if(!worker) { alert('Select contractor.'); return; }
+    if(pos.some(x => x.id !== poEditId && String(x.poNo).trim().toLowerCase() === poNo.toLowerCase())) { alert('Mayroon nang PO na may numerong ' + poNo + '.'); return; }
+    const items = poCalc();
+    if(!items.length) { alert('Pumili ng kahit isang structure.'); return; }
+    const amount = Math.round(items.reduce((t, i) => t + i.amount, 0) * 100) / 100;
+    const old = poEditId ? pos.find(x => x.id === poEditId) : null;
+    if(old && old.signature) { alert('Naka-pirma na ang PO na ito, hindi na mababago.'); return; }
+    const rec = { id: poEditId || 'po_' + Date.now(), poNo, date: document.getElementById('po-date').value, worker, amount, note: document.getElementById('po-note').value.trim(), items, paid: old ? !!old.paid : false, paidDate: old ? old.paidDate || '' : '', preparedBy: document.getElementById('po-prepared').value.trim(), signature: old ? old.signature || '' : '', signedDate: old ? old.signedDate || '' : '' };
+    if(poEditId) pos[pos.findIndex(x => x.id === poEditId)] = rec; else pos.push(rec);
+    savePOs(); closePOForm(); renderPO();
+    notify('Na-save ang PO ' + poNo + ' (' + peso(amount) + ').');
+}
+// ----- Billing preview / PDF -----
+// Buod ng mga hakbang sa PO: pinagsama ang erection, excavation, at transfer
+function summarizeSteps(details) {
+    if(!details || !details.length) return '-';
+    const groups = [], idx = {};
+    details.forEach(d => {
+        const base = String(d.k || '').split(':')[0];
+        let key, label;
+        if(base === 'erection') { key = 'erection'; label = 'Erection'; }
+        else if(base === 'excavation') { key = 'excavation'; label = 'Excavation'; }
+        else if(base === 'roadside') { key = 'roadside'; label = 'Roadside'; }
+        else if(base === 'dragging') { key = 'dragging'; label = 'Dragging'; }
+        else if(base === 'transferAlpha' || base === 'transferBravo' || base === 'transferCharlie') { key = 'transfer'; label = 'Transfer'; }
+        else { key = d.k; label = d.l; }
+        if(!idx[key]) { idx[key] = { key, label, count: 0, price: 0 }; groups.push(idx[key]); }
+        idx[key].price += parseFloat(d.price) || 0;
+        if(['erection', 'excavation', 'roadside', 'dragging'].includes(key)) idx[key].count++;
+    });
+    return groups.map(g => {
+        let text = g.label;
+        if(g.key === 'erection' || g.key === 'roadside' || g.key === 'dragging') text += ' (' + g.count + ' poste)';
+        if(g.key === 'excavation') text += ' (' + g.count + ' butas)';
+        return escapeHtml(text) + ' — ' + peso(g.price);
+    }).join('<br>');
+}
+function poDocHtml(po, draft) {
+    const sites = {};
+    po.items.forEach(it => {
+        const line = lines.find(l => l.id === it.lineId), st = (data[it.lineId] || []).find(x => x.id === it.structId);
+        if(!line || !st) return;
+        (sites[line.name] = sites[line.name] || []).push({ st, it });
+    });
+    let body = '';
+    Object.keys(sites).forEach(name => {
+        let sub = 0;
+        body += '<h4>📍 ' + escapeHtml(name) + '</h4><table><thead><tr><th>Structure</th><th>Type</th><th>Steps</th><th class="r">Amount</th></tr></thead><tbody>';
+        sites[name].sort((a, b) => String(a.st.no).localeCompare(String(b.st.no), undefined, { numeric: true })).forEach(({ st, it }) => {
+            sub += it.amount || 0;
+            const steps = summarizeSteps(it.details);
+            body += '<tr><td><strong>' + escapeHtml(st.no) + '</strong></td><td>' + escapeHtml(st.type) + '</td><td>' + steps + '</td><td class="r">' + peso(it.amount) + '</td></tr>';
+        });
+        body += '<tr class="sub"><td colspan="3" class="r">Subtotal — ' + escapeHtml(name) + '</td><td class="r">' + peso(sub) + '</td></tr></tbody></table>';
+    });
+    return '<div class="po-head"><div><h1>PURCHASE ORDER</h1><small>69kV Rehab Project</small></div>' +
+      '<table class="po-meta"><tr><td>PO No.</td><td>:</td><td class="v po-red">' + escapeHtml(po.poNo || '—') + '</td></tr>' +
+      '<tr><td>Date</td><td>:</td><td class="v">' + (po.date ? fmtDate(po.date) : '—') + '</td></tr>' +
+      '<tr><td>Contractor</td><td>:</td><td class="v">' + escapeHtml(po.worker || '—') + '</td></tr></table></div>' +
+      (draft ? '<p class="po-draft">PREVIEW (not saved yet)</p>' : '') +
+      (body || '<p>No structure.</p>') +
+      '<div class="po-total"><span>TOTAL AMOUNT</span><span>' + peso(po.amount) + '</span></div>' +
+      (po.note ? '<p style="margin-top:12px"><strong>Note:</strong> ' + escapeHtml(po.note) + '</p>' : '') +
+      (po.paid ? '' : '<p class="po-unpaid">STATUS: NOT YET PAID</p>') +
+      (po.paid ? '<div class="po-stampwrap"><div class="po-stamp">BAYAD NA<small>' + fmtDate(po.paidDate) + '</small></div></div>' : '') +
+      '<div class="po-sign"><div class="po-sig"><div class="signed">' + escapeHtml(po.preparedBy || '') + '</div><div class="line"></div>Prepared by</div>' +
+      '<div class="po-sig"><div class="signed">' + (po.signature ? '<img src="' + po.signature + '" alt="Pirma" style="max-height:64px;max-width:100%">' : '') + '</div><div class="line"></div>Received by: ' + escapeHtml(po.worker) + (po.paid ? '<br>Date: ' + fmtDate(po.paidDate) : '') + '</div></div>' +
+      '';
+}
+// ----- Digital na pirma ng PO -----
+let signPoId = null, signInk = false, signDrawing = false;
+function signCtx() { return document.getElementById('sign-canvas').getContext('2d'); }
+function signPoint(e) {
+    const c = document.getElementById('sign-canvas'), r = c.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (c.width / r.width), y: (e.clientY - r.top) * (c.height / r.height) };
+}
+function signClear() {
+    const c = document.getElementById('sign-canvas');
+    signCtx().clearRect(0, 0, c.width, c.height);
+    signInk = false;
+}
+function signPO(id) {
+    const po = pos.find(x => x.id === id);
+    if(!po) return;
+    if(po.signature) { alert('Naka-pirma na ang PO na ito.'); return; }
+    signPoId = id;
+    document.getElementById('sign-title').textContent = '✍️ Sign: PO ' + po.poNo + ' (' + po.worker + ')';
+    document.getElementById('sign-modal').style.display = 'block';
+    signClear();
+}
+function signCancel() { document.getElementById('sign-modal').style.display = 'none'; signPoId = null; }
+function signConfirm() {
+    const po = pos.find(x => x.id === signPoId);
+    if(!po) { signCancel(); return; }
+    if(!signInk) { alert('Gumuhit muna ng pirma.'); return; }
+    if(!confirm('Pirmahan ang PO ' + po.poNo + '? Mamarkahang BAYAD NA at hindi na mababago.')) return;
+    po.signature = document.getElementById('sign-canvas').toDataURL('image/png');
+    po.signedDate = todayISO();
+    po.paid = true; po.paidDate = todayISO();
+    savePOs(); signCancel(); renderPO();
+    notify('Napirmahan ang PO ' + po.poNo + '. Markado nang BAYAD NA.');
+}
+(function signInit() {
+    const c = document.getElementById('sign-canvas');
+    if(!c) return;
+    const x = c.getContext('2d');
+    x.lineWidth = 2.5; x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = '#0b2e55';
+    c.addEventListener('pointerdown', e => {
+        signDrawing = true;
+        const p = signPoint(e);
+        x.beginPath(); x.moveTo(p.x, p.y);
+        c.setPointerCapture(e.pointerId);
+    });
+    c.addEventListener('pointermove', e => {
+        if(!signDrawing) return;
+        const p = signPoint(e);
+        x.lineTo(p.x, p.y); x.stroke();
+        signInk = true;
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => c.addEventListener(t, () => { signDrawing = false; }));
+})();
+
+// ----- Backup / Restore -----
+function buildBackup() {
+    const out = { app: '69kV Rehab Tracker', savedAt: new Date().toISOString(), data: {} };
+    for(let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if(k && k.startsWith('proj_')) out.data[k] = localStorage.getItem(k);
+    }
+    return JSON.stringify(out);
+}
+function backupDownload() {
+    const blob = new Blob([buildBackup()], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'backup_rehab_' + todayISO() + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    notify('Na-download ang backup.');
+}
+function restoreFromText(txt) {
+    let obj = null;
+    try { obj = JSON.parse(String(txt || '').trim()); } catch(e) { obj = null; }
+    if(!obj || obj.app !== '69kV Rehab Tracker' || !obj.data) { alert('Hindi tamang backup.'); return; }
+    if(!confirm('Papalitan ng backup ang LAHAT ng kasalukuyang data.\nPetsa ng backup: ' + (obj.savedAt || '-') + '\n\nTuloy?')) return;
+    Object.keys(localStorage).filter(k => k.startsWith('proj_')).forEach(k => localStorage.removeItem(k));
+    Object.keys(obj.data).forEach(k => { if(k.startsWith('proj_')) localStorage.setItem(k, obj.data[k]); });
+    alert('Na-restore ang backup. Ili-reload ang page.');
+    location.reload();
+}
+function restoreFromFile(input) {
+    const f = input.files && input.files[0];
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = () => restoreFromText(r.result);
+    r.readAsText(f);
+}
+
+let poPreviewTitle = '';
+function poOpenPreview(po, draft) {
+    document.getElementById('po-sheet').innerHTML = poDocHtml(po, draft);
+    poPreviewTitle = 'PO-' + (po.poNo || 'draft') + '_' + po.worker;
+    document.getElementById('po-modal').style.display = 'block';
+    document.getElementById('po-modal').scrollTop = 0;
+}
+function poPreviewById(id) { const po = pos.find(x => x.id === id); if(po) poOpenPreview(po, false); }
+function poPreviewForm() {
+    const worker = document.getElementById('po-worker').value, items = poCalc();
+    if(!worker) { alert('Pumili muna ng gumawa.'); return; }
+    if(!items.length) { alert('Pumili ng kahit isang structure para makita ang preview.'); return; }
+    const old = poEditId ? pos.find(x => x.id === poEditId) : null;
+    poOpenPreview({ poNo: document.getElementById('po-no').value.trim(), date: document.getElementById('po-date').value, worker, note: document.getElementById('po-note').value.trim(),
+        amount: items.reduce((t, i) => t + i.amount, 0), items, paid: old ? !!old.paid : false, paidDate: old ? old.paidDate : '' }, true);
+}
+function poClosePreview() { document.getElementById('po-modal').style.display = 'none'; }
+function poPrint() {
+    const oldTitle = document.title;
+    document.title = poPreviewTitle;
+    document.body.classList.add('po-printing');
+    const done = () => { document.body.classList.remove('po-printing'); document.title = oldTitle; window.removeEventListener('afterprint', done); };
+    window.addEventListener('afterprint', done);
+    window.print();
+}
+document.addEventListener('keydown', function(e) { if(e.key === 'Escape') poClosePreview(); });
+function deletePO(id) {
+    const po = pos.find(x => x.id === id);
+    if(po && po.signature) { alert('Naka-pirma na ang PO na ito, hindi na mabubura.'); return; }
+    if(!po || !confirm('Burahin ang PO ' + po.poNo + '?')) return;
+    pos = pos.filter(x => x.id !== id); savePOs(); renderPO();
+}
+const PRICE_TYPES = ['B','C','D','E','HT','HS','3T','3C','3D'];
+const FLAT_PRICES = [['roadside','🚚 Roadside','Price per pole (₱)'],['excavation','⛏️ Excavation','Price per pole (₱)'],['dragging','🪢 Dragging','Price per pole (₱)'],['anchor','🔩 Anchor Screw / Lag','Price per piece (₱)']];
+const TYPE_STEPS = [['erection','🏗️ Erection (price per pole)'],['transferAlpha','🔄 Transfer Alpha'],['transferBravo','🔄 Transfer Bravo'],['transferCharlie','🔄 Transfer Charlie'],['retrieval','📦 Retrieve Pole']];
+let prices = { flat: {}, types: {} };
+try {
+    const v5 = JSON.parse(localStorage.getItem('proj_prices_v5') || 'null');
+    if(v5 && v5.flat && v5.types) prices = v5;
+    else {
+        const v4 = JSON.parse(localStorage.getItem('proj_prices_v4') || 'null');
+        if(v4 && typeof v4 === 'object') {
+            PRICE_TYPES.forEach(t => {
+                const o = v4[t]; if(!o) return;
+                TYPE_STEPS.forEach(([k]) => { if(o[k] !== undefined) (prices.types[t] = prices.types[t] || {})[k] = o[k]; });
+                FLAT_PRICES.forEach(([k]) => { if(o[k] !== undefined && prices.flat[k] === undefined) prices.flat[k] = o[k]; });
+            });
+        }
+    }
+} catch(e) { prices = { flat: {}, types: {} }; }
+function renderPrices() {
+    document.getElementById('pr-flat').innerHTML = FLAT_PRICES.map(([k, label, lab2]) => {
+        const v = prices.flat[k];
+        return '<details class="stage" oninput="priceChanged(event, this)"><summary>' + label + '<span class="sbadge">Not yet</span></summary><div class="stage-body"><div class="price-grid" style="grid-template-columns:1fr"><div><label>' + lab2 + '</label><input type="number" inputmode="decimal" min="0" step="any" placeholder="0.00" data-pflat="' + k + '" value="' + (v === undefined ? '' : v) + '"></div></div></div></details>';
+    }).join('');
+    document.getElementById('pr-types').innerHTML = PRICE_TYPES.map(t => {
+        const cur = prices.types[t] || {};
+        const body = TYPE_STEPS.map(([k, label]) => '<div><label>' + label + ' (₱)</label><input type="number" inputmode="decimal" min="0" step="any" placeholder="0.00" data-ptype="' + t + '" data-pkey="' + k + '" value="' + (cur[k] === undefined ? '' : cur[k]) + '"></div>').join('');
+        return '<details class="stage" oninput="priceChanged(event, this)"><summary>Type ' + t + '<span class="sbadge">Not yet</span></summary><div class="stage-body"><div class="price-grid" style="grid-template-columns:1fr">' + body + '</div><div class="po-total" style="font-size:15px;margin-top:14px;padding:10px 14px"><span>Kumpletong presyo (Erection → Retrieve)</span><span class="ptotal">₱0.00</span></div></div></details>';
+    }).join('');
+    document.querySelectorAll('#pricesPage details.stage').forEach(priceBadge);
+}
+function priceChanged(e, det) {
+    const t = e.target.dataset.ptype, k = e.target.dataset.pkey, f = e.target.dataset.pflat;
+    const val = e.target.value === '' ? undefined : (parseFloat(e.target.value) || 0);
+    if(f) { if(val === undefined) delete prices.flat[f]; else prices.flat[f] = val; }
+    else if(t && k) { prices.types[t] = prices.types[t] || {}; if(val === undefined) delete prices.types[t][k]; else prices.types[t][k] = val; }
+    else return;
+    try { localStorage.setItem('proj_prices_v5', JSON.stringify(prices)); } catch(e) {}
+    priceBadge(det);
+}
+function priceBadge(det) {
+    const b = det.querySelector('.sbadge');
+    const flat = det.querySelector('input[data-pflat]');
+    if(flat) { b.textContent = flat.value !== '' ? peso(flat.value) : 'Wala pa'; b.className = 'sbadge' + (flat.value !== '' ? ' ok' : ''); return; }
+    const ins = [...det.querySelectorAll('input[data-ptype]')], filled = ins.filter(i => i.value !== '').length;
+    const total = ins.reduce((a, i) => a + (parseFloat(i.value) || 0), 0);
+    det.querySelector('.ptotal').textContent = peso(total);
+    b.textContent = filled ? peso(total) : 'Wala pa';
+    b.className = 'sbadge' + (filled === ins.length ? ' ok' : filled ? ' part' : '');
+}
+// === LINE HARDWARE (MENU) ===
+var hwParts = null;
+function hwEsc(x) { return String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+function hwPartsAll() {
+    if(!hwParts) { try { hwParts = JSON.parse(localStorage.getItem('proj_hw_parts_v1') || '{}') || {}; } catch(e) { hwParts = {}; } }
+    return hwParts;
+}
+function hwPartsSave() { try { localStorage.setItem('proj_hw_parts_v1', JSON.stringify(hwPartsAll())); } catch(e) {} }
+function hwCur() { return document.getElementById('hw-type').value; }
+var hwEditIdx = -1;
+function hwRender() {
+    const cb = document.getElementById('hw-calc-types');
+    if(cb && !cb.children.length) cb.innerHTML = PRICE_TYPES.map(t => '<div><label>Type ' + t + '</label><input type="number" min="0" step="1" placeholder="0" data-calc-type="' + t + '"></div>').join('');
+    const sel = document.getElementById('hw-type');
+    if(!sel.options.length) sel.innerHTML = PRICE_TYPES.map(t => '<option value="' + t + '">Structure Type ' + t + '</option>').join('');
+    const t = hwCur(), rows = hwPartsAll()[t] || [];
+    document.getElementById('hw-list').innerHTML = rows.length ? rows.map((r, i) => {
+        if(i === hwEditIdx) {
+            return '<div style="display:grid;grid-template-columns:2fr 1fr auto;gap:6px;align-items:end;padding:1px 0;border-bottom:1px solid var(--line,#d9e2ec)">' +
+                '<div><label>Name</label><input type="text" id="hw-ed-name" value="' + hwEsc(r.name) + '"></div>' +
+                '<div><label>Qty</label><input type="number" id="hw-ed-qty" min="1" step="1" value="' + hwEsc(r.qty) + '"></div>' +
+                '<div style="display:flex;gap:6px"><button type="button" class="primary btn-sm" onclick="hwSaveEdit(' + i + ')">💾</button>' +
+                '<button type="button" class="secondary btn-sm" onclick="hwCancelEdit()">↩</button></div></div>';
+        }
+        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:1px 6px;border-bottom:1px solid var(--line,#d9e2ec);font-size:16px;line-height:1.3">' +
+            '<span style="font-weight:600;flex:1">' + hwEsc(r.name) + '</span>' +
+            '<span style="white-space:nowrap">' + hwEsc(r.qty) + ' pc</span>' +
+            '<span style="display:flex;gap:4px"><button type="button" class="secondary btn-sm" style="padding:2px 8px" onclick="hwStartEdit(' + i + ')">✏️</button>' +
+            '<button type="button" class="secondary btn-sm" style="padding:2px 8px" onclick="hwDel(' + i + ')">🗑️</button></span></div>';
+    }).join('') : '<p class="small-note">No parts yet for Type ' + t + '.</p>';
+}
+function hwStartEdit(i) { hwEditIdx = i; hwRender(); }
+function hwCancelEdit() { hwEditIdx = -1; hwRender(); }
+function hwSaveEdit(i) {
+    const name = document.getElementById('hw-ed-name').value.trim();
+    const qty = document.getElementById('hw-ed-qty').value || '1';
+    if(!name) { alert('Ilagay ang pangalan ng part.'); return; }
+    const r = hwPartsAll()[hwCur()][i];
+    r.name = name; r.qty = qty;
+    hwPartsSave();
+    hwEditIdx = -1;
+    hwRender();
+}
+// Kabuuang parts na kailangang i-withdraw, batay sa dami ng structure ng bawat type
+function hwCalc() {
+    const all = hwPartsAll(), agg = {}, order = [];
+    document.querySelectorAll('[data-calc-type]').forEach(inp => {
+        const t = inp.dataset.calcType, n = parseInt(inp.value, 10) || 0;
+        if(!n) return;
+        (all[t] || []).forEach(r => {
+            const q = (parseFloat(r.qty) || 0) * n;
+            const key = String(r.name).trim().toLowerCase();
+            if(!agg[key]) { agg[key] = { name: String(r.name).trim(), total: 0, by: {} }; order.push(key); }
+            agg[key].total += q;
+            agg[key].by[t] = (agg[key].by[t] || 0) + q;
+        });
+    });
+    const out = document.getElementById('hw-calc-out');
+    if(!order.length) { out.innerHTML = '<p class="small-note">Maglagay ng dami ng structure, at siguraduhing may part na ang napiling type.</p>'; return; }
+    out.innerHTML = order.map(k => {
+        const a = agg[k];
+        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:4px 8px;border-bottom:1px solid var(--line,#d9e2ec);font-size:16px;line-height:1.3">' +
+            '<span><strong>' + hwEsc(a.name) + '</strong><br><small>' + Object.keys(a.by).map(t => t + ': ' + a.by[t]).join(' · ') + '</small></span>' +
+            '<span style="white-space:nowrap;font-weight:700">' + a.total + ' pc</span></div>';
+    }).join('');
+}
+function hwAdd() {
+    const name = document.getElementById('hw-new-name').value.trim();
+    const qty = document.getElementById('hw-new-qty').value || '1';
+    if(!name) { alert('Ilagay ang pangalan ng part.'); return; }
+    const all = hwPartsAll(), t = hwCur();
+    (all[t] = all[t] || []).push({ name: name, qty: qty });
+    hwPartsSave();
+    document.getElementById('hw-new-name').value = '';
+    document.getElementById('hw-new-qty').value = '1';
+    hwRender();
+}
+function hwDel(i) { hwPartsAll()[hwCur()].splice(i, 1); hwPartsSave(); hwEditIdx = -1; hwRender(); }
+
+let toastTimer;
+function notify(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = '✅ ' + msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+function savePriceForm() {
+    Object.keys(prices.types).forEach(t => { if(!Object.keys(prices.types[t] || {}).length) delete prices.types[t]; });
+    localStorage.setItem('proj_prices_v5', JSON.stringify(prices));
+    document.querySelectorAll('#pricesPage details.stage').forEach(d => { d.open = false; });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    notify('Na-save ang mga presyo.');
+}
+function mergeShutdownInto(target, src) {
+    if(src.note && src.note !== target.note) target.note = target.note ? target.note + ' / ' + src.note : src.note;
+    target.assignments = target.assignments || [];
+    (src.assignments || []).forEach(a => {
+        const ex = target.assignments.find(x => x.worker.trim().toLowerCase() === a.worker.trim().toLowerCase());
+        if(ex) ex.structIds = [...new Set([...(ex.structIds || []), ...(a.structIds || [])])];
+        else target.assignments.push({ worker: a.worker, structIds: [...(a.structIds || [])] });
+    });
+}
+function mergeSameDateShutdowns() {
+    let changed = false;
+    Object.keys(shutdowns).forEach(lineId => {
+        const out = [];
+        (shutdowns[lineId] || []).forEach(sd => {
+            const same = out.find(x => x.date === sd.date);
+            if(same) { mergeShutdownInto(same, sd); changed = true; } else out.push(sd);
+        });
+        shutdowns[lineId] = out;
+    });
+    if(changed) saveShutdowns();
+}
+let workers = [];
+try { workers = JSON.parse(localStorage.getItem('proj_workers') || '[]') || []; } catch(e) { workers = []; }
+function saveWorkers() { localStorage.setItem('proj_workers', JSON.stringify(workers)); }
+const WORKER_FIELDS = () => STEP_KEYS.map(k => k + 'By').concat(['transferBy']);
+function collectUsedWorkers() {
+    const out = new Map();
+    const add = n => { const t = String(n || '').trim(); if(t && !out.has(t.toLowerCase())) out.set(t.toLowerCase(), t); };
+    Object.values(data).forEach(arr => (arr || []).forEach(x => WORKER_FIELDS().forEach(f => add(x[f]))));
+    Object.values(shutdowns).forEach(arr => (arr || []).forEach(sd => (sd.assignments || []).forEach(a => add(a.worker))));
+    pos.forEach(po => add(po.worker));
+    return [...out.values()];
+}
+function syncWorkers() {
+    collectUsedWorkers().forEach(n => { if(!workers.some(w => sameName(w, n))) workers.push(n); });
+    workers.sort((a, b) => a.localeCompare(b));
+    saveWorkers();
+}
+function setWorkerSel(sel, name) {
+    name = name || '';
+    if(name && ![...sel.options].some(o => o.value === name)) { const o = document.createElement('option'); o.value = name; o.textContent = name; sel.appendChild(o); }
+    sel.value = name;
+}
+function fillWorkerSelects() {
+    document.querySelectorAll('select.worker-sel').forEach(sel => {
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">— Select contractor —</option>' + workers.map(n => '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>').join('');
+        setWorkerSel(sel, cur);
+    });
+}
+function workerUsage(name) {
+    let steps = 0, sd = 0, po = 0;
+    Object.values(data).forEach(arr => (arr || []).forEach(x => WORKER_FIELDS().forEach(f => { if(sameName(x[f], name)) steps++; })));
+    Object.values(shutdowns).forEach(arr => (arr || []).forEach(d => (d.assignments || []).forEach(a => { if(sameName(a.worker, name)) sd++; })));
+    pos.forEach(p => { if(sameName(p.worker, name)) po++; });
+    return { steps, sd, po, total: steps + sd + po };
+}
+function renderWorkersPage() {
+    const box = document.getElementById('wk-list');
+    if(!workers.length) { box.innerHTML = '<div class="card" style="color:#888">No name yet. Enter it above.</div>'; return; }
+    box.innerHTML = '<div class="table-wrapper"><table style="min-width:520px"><thead><tr><th>Name</th><th>Used in</th><th>Actions</th></tr></thead><tbody>' + workers.map((n, i) => {
+        const u = workerUsage(n);
+        return '<tr><td><strong>' + escapeHtml(n) + '</strong></td><td style="white-space:normal"><span class="small-note">' + u.steps + ' hakbang · ' + u.sd + ' shutdown · ' + u.po + ' PO</span></td>' +
+          '<td><button class="edit-btn" onclick="renameWorker(' + i + ')">✏️ Rename</button> <button class="danger btn-sm" onclick="deleteWorker(' + i + ')">🗑️ Delete</button></td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+function addWorkerName() {
+    const inp = document.getElementById('wk-name'), name = inp.value.trim().replace(/\s+/g, ' ');
+    if(!name) { alert('Ilagay ang pangalan.'); return; }
+    if(workers.some(w => sameName(w, name))) { alert('Nandoon na ang pangalang ' + name + '.'); return; }
+    workers.push(name); workers.sort((a, b) => a.localeCompare(b)); saveWorkers();
+    inp.value = ''; fillWorkerSelects(); renderWorkersPage(); notify('Naidagdag si ' + name + '.');
+}
+function renameWorker(i) {
+    const old = workers[i];
+    let nn = prompt('Bagong pangalan para kay ' + old + ':', old);
+    if(nn === null) return;
+    nn = nn.trim().replace(/\s+/g, ' ');
+    if(!nn || nn === old) return;
+    if(workers.some((w, j) => j !== i && sameName(w, nn))) { alert('Nandoon na ang pangalang ' + nn + '.'); return; }
+    Object.values(data).forEach(arr => (arr || []).forEach(x => WORKER_FIELDS().forEach(f => { if(sameName(x[f], old)) x[f] = nn; })));
+    Object.values(shutdowns).forEach(arr => (arr || []).forEach(d => (d.assignments || []).forEach(a => { if(sameName(a.worker, old)) a.worker = nn; })));
+    pos.forEach(p => { if(sameName(p.worker, old)) p.worker = nn; });
+    workers[i] = nn; workers.sort((a, b) => a.localeCompare(b));
+    saveWorkers(); saveAllData(); saveShutdowns(); savePOs();
+    fillWorkerSelects(); renderWorkersPage(); renderAllLineLists(); renderShutdownSummary(); updateDashboard();
+    notify('Napalitan: ' + old + ' → ' + nn);
+}
+function deleteWorker(i) {
+    const n = workers[i], u = workerUsage(n);
+    if(u.total) { alert('Hindi mabubura si ' + n + ' dahil ginagamit pa siya sa ' + u.steps + ' hakbang, ' + u.sd + ' shutdown, at ' + u.po + ' PO.\nPalitan muna ang pangalan sa mga iyon, o gamitin ang ✏️ Rename.'); return; }
+    if(!confirm('Burahin si ' + n + ' sa listahan?')) return;
+    workers.splice(i, 1); saveWorkers(); fillWorkerSelects(); renderWorkersPage(); notify('Nabura si ' + n + '.');
+}
+function gsOpen() {
+    document.getElementById('gs-panel').style.display = 'block';
+    const i = document.getElementById('gs-input'); i.focus(); i.select(); gsRun();
+}
+function gsClose() { document.getElementById('gs-panel').style.display = 'none'; }
+function gsToggle() { document.getElementById('gs-panel').style.display === 'block' ? gsClose() : gsOpen(); }
+// Lahat ng pangalan ng gumawa sa isang structure (sa bawat hakbang at bawat poste/butas)
+function itemWorkers(x) {
+    const names = new Set();
+    Object.keys(x).forEach(k => { if(k.endsWith('By') && typeof x[k] === 'string' && x[k].trim()) names.add(x[k].trim()); });
+    ['erectionPoles', 'excavationHoles', 'draggingPoles', 'roadsidePoles'].forEach(k => (x[k] || []).forEach(u => { if(u && u.by) names.add(String(u.by).trim()); }));
+    return [...names];
+}
+function gsRun() {
+    const q = document.getElementById('gs-input').value.trim().toLowerCase();
+    const box = document.getElementById('gs-results');
+    if(!q) { box.innerHTML = ''; return; }
+    const hits = [];
+    lines.forEach((l, li) => (data[l.id] || []).forEach(x => {
+        const no = String(x.no).toLowerCase(), old = String(x.oldNo || '').toLowerCase(), type = String(x.type || '').toLowerCase();
+        const wk = itemWorkers(x).filter(n => n.toLowerCase().includes(q));
+        const byNo = no.includes(q) || old.includes(q) || (no + ' ' + type).includes(q) || (no + type).includes(q);
+        if(byNo || wk.length) {
+            hits.push({ l, li, x, wk, rank: (no === q || old === q) ? 0 : (no.startsWith(q) || old.startsWith(q)) ? 1 : byNo ? 2 : 3 });
+        }
+    }));
+    hits.sort((a, b) => a.rank - b.rank || a.li - b.li || String(a.x.no).localeCompare(String(b.x.no), undefined, { numeric: true }));
+    if(!hits.length) { box.innerHTML = '<div class="gs-hint">No results for "' + escapeHtml(q) + '".</div>'; return; }
+    box.innerHTML = hits.slice(0, 40).map(h => {
+        const st = getStatus(h.x);
+        return '<button type="button" class="gs-item" onclick="gsGo(\'' + h.l.id + '\', ' + h.x.id + ')"><span><strong>' + escapeHtml(h.x.no) + '</strong> · ' + escapeHtml(h.x.type) +
+          (h.x.oldNo && h.x.oldNo !== h.x.no ? ' <span class="small-note">(dati: ' + escapeHtml(h.x.oldNo) + ')</span>' : '') +
+          '<small>📍 ' + escapeHtml(h.l.name) + '</small>' +
+          (h.wk.length ? '<small>👷 ' + escapeHtml(h.wk.join(', ')) + '</small>' : '') +
+          '</span><span class="status ' + st.class + '">' + st.text + '</span></button>';
+    }).join('') + (hits.length > 40 ? '<div class="gs-hint">May ' + hits.length + ' resulta. Paliitin ang hinahanap.</div>' : '');
+}
+function gsGo(lineId, id) {
+    gsClose(); closeMenu();
+    showTab(lineId);
+    setTimeout(() => {
+        const tr = document.querySelector('#' + CSS.escape(lineId) + '-list tr[data-sid="' + id + '"]');
+        if(!tr) return;
+        const wrap = tr.closest('.table-wrapper'); if(wrap) wrap.scrollLeft = 0;
+        tr.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        tr.classList.add('flash'); setTimeout(() => tr.classList.remove('flash'), 2900);
+    }, 120);
+}
+document.addEventListener('keydown', function(e) {
+    if(e.key === 'Escape') gsClose();
+    else if(e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '')) { e.preventDefault(); gsOpen(); }
+});
+document.addEventListener('click', function(e) {
+    const panel = document.getElementById('gs-panel');
+    if(panel.style.display === 'block' && !panel.contains(e.target) && !e.target.closest('#gs-btn')) gsClose();
+});
+function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// === ADD NEW LINE ===
+function addNewLine() {
+    const name = document.getElementById('new-line-name').value.trim();
+    const total = parseInt(document.getElementById('new-line-total').value) || 0;
+    
+    if(!name) { alert('Ilagay ang pangalan ng project site!'); return; }
+    
+    const id = 'line_' + Date.now();
+    lines.push({ id, name, totalStructures: total, totalShutdowns: parseInt(document.getElementById('new-line-shutdowns').value) || 0 });
+    if(!data[id]) data[id] = [];
+    if(!shutdowns[id]) shutdowns[id] = [];
+    
+    saveLines();
+    saveAllData();
+    buildDynamicSections();
+    
+    document.getElementById('new-line-name').value = '';
+    document.getElementById('new-line-total').value = '';
+    document.getElementById('new-line-shutdowns').value = '';
+    alert('✅ Naidagdag ang bagong project site!');
+}
+
+// === DELETE LINE ===
+function deleteLine(lineId) {
+    if(confirm('⚠️ SIGURADO KA BA? Buburahin nito ang buong project site at lahat ng data dito.\nI-click ang OK para magpatuloy.')) {
+        lines = lines.filter(l => l.id !== lineId);
+        delete data[lineId];
+        saveLines();
+        saveAllData();
+        buildDynamicSections();
+    }
+}
+
+// === RENDER LINES IN NAV ===
+function renderLinesNav() {
+    // Wala nang hiwa-hiwalay na button sa menu; nasa iisang "Mga Project Site" page na lahat.
+    document.querySelectorAll('#main-nav .dyn-btn').forEach(b => b.remove());
+    renderLinesHub();
+}
+function renderLinesHub() {
+    const box = document.getElementById('lines-hub-list');
+    if(!box) return;
+    if(!lines.length) { box.innerHTML = '<p style="color:#888">No project site yet. Go to ➕ Add Project Site.</p>'; return; }
+    box.innerHTML = lines.map(line => {
+        const items = data[line.id] || [];
+        const cleared = items.filter(isCleared).length;
+        const pct = line.totalStructures ? Math.min(100, Math.round(items.filter(isWorkFinished).reduce((a, i) => a + (parseInt(i.poles) || 0), 0) / line.totalStructures * 100)) : 0;
+        return '<button type="button" class="hub-item" onclick="showTab(\'' + line.id + '\')">' +
+          '<strong>📍 ' + escapeHtml(line.name) + '</strong>' +
+          '<span>Structures: ' + items.length + ' &nbsp;|&nbsp; Target Poles: ' + line.totalStructures + ' &nbsp;|&nbsp; Completed: ' + cleared + '</span>' +
+          '<span class="hub-bar"><i style="width:' + pct + '%"></i></span></button>';
+    }).join('');
+}
+
+// === RENDER LINES LIST ===
+function renderLinesList() {
+    const container = document.getElementById('lines-list');
+    if(lines.length === 0) {
+        container.innerHTML = '<p style="color:#888">Wala pang nakalagay na project site.</p>';
+        return;
+    }
+    
+    let html = '';
+    lines.forEach(line => {
+        const items = data[line.id] || [];
+        html += `
+        <div class="card">
+            <h3>${line.name}</h3>
+            <p>Target Poles: ${line.totalStructures} | Structures: ${items.length} | Shutdown: ${(shutdowns[line.id] || []).length}${line.totalShutdowns ? ' / ' + line.totalShutdowns : ''}</p>
+            <button class="danger" onclick="deleteLine('${line.id}')">🗑️ Delete Project Site</button>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+// === STATUS CHECKS ===
+function isTransferred(item) {
+    // Required: all three transfer checkboxes AND their individual dates.
+    return !!(item.transferAlpha && item.transferAlphaDate && item.transferBravo && item.transferBravoDate && item.transferCharlie && item.transferCharlieDate);
+}
+function isWorkFinished(item) {
+    return !!(item.excavationDate && item.draggingDate && item.erectionDate && isTransferred(item));
+}
+function isCleared(item) {
+    // CLEARED kapag may petsa na ang Retrieve
+    return !!item.retrievalDate;
+}
+function isChanged(item) {
+    return !!(item.oldNo && item.oldNo !== item.no);
+}
+function getStatus(item) {
+    // Automatic status: date fields determine each stage; no manual status selector.
+    const stages = [
+      ['Roadside', item.roadsideDate],
+      ['Excavation', item.excavationDate],
+      ['Dragging', item.draggingDate],
+      ['Erection', item.erectionDate],
+      ['Anchor/Lag', item.anchorDate]
+    ];
+    const done = stages.filter(x => !!x[1]).length;
+    if(isCleared(item)) {
+      return { text: '✅ COMPLETED', class: 'cleared' };
+    }
+    if(isWorkFinished(item)) return { text: '🚚 TRANSFERRED', class: 'done' };
+    if(item.erectionDate) return { text: '🏗️ ERECTED', class: 'erected' };
+    // Roadside, Excavation, at Dragging na may petsa, wala pang Erection at Anchor
+    if(item.roadsideDate && item.excavationDate && item.draggingDate && !item.erectionDate && !item.anchorDate) {
+        return { text: '📦 ALREADY PREPARED', class: 'prepared' };
+    }
+    if(done > 0) return { text: '🛠️ IN PROGRESS', class: 'pending' };
+    if(isChanged(item)) return { text: '🔁 CHANGED', class: 'changed' };
+    return { text: '⏳ NOT STARTED', class: 'pending' };
+}
+
+// === GET LINE NAME BY ID ===
+
+// === BUILD DYNAMIC SECTIONS ===
+function buildDynamicSections() {
+    const container = document.getElementById('dynamic-sections');
+    container.innerHTML = '';
+    
+    lines.forEach(line => {
+        container.innerHTML += `
+        <section id="${line.id}">
+            <button class="secondary" style="margin-bottom:10px" onclick="showTab('linesHub')">← Project Sites</button>
+            <h2>📍 ${line.name}</h2>
+            <div class="card" id="${line.id}-form-card">
+                <h3 id="${line.id}-form-title">➕ Add Structure</h3>
+                <div class="grid">
+                    <div class="row3">
+                    <div>
+                        <label>Bagong Structure No. *</label>
+                        <input type="text" id="${line.id}-struct-no" placeholder="Hal. S-07">
+                    </div>
+                    <div>
+                        <label>Dati / Lumang Structure No.</label>
+                        <input type="text" id="${line.id}-old-no" placeholder="Kung napalitan">
+                    </div>
+                    <div>
+                        <label>Structure Type</label>
+                        <select id="${line.id}-struct-type">
+                            <option value="">— Select —</option>
+                            <option value="B">Type B</option>
+                            <option value="C">Type C</option>
+                            <option value="D">Type D</option>
+                            <option value="E">Type E</option>
+                            <option value="HT">Type HT</option>
+                            <option value="HS">Type HS</option>
+                            <option value="3T">Type 3T</option>
+                            <option value="3C">Type 3C</option>
+                            <option value="3D">Type 3D</option>
+                        </select>
+                    </div>
+                    </div>
+                </div>
+                <div style="margin-top:15px;">
+                    <button class="primary" id="${line.id}-save-btn" onclick="saveStructure('${line.id}')">➕ Save Structure</button>
+                    <button class="secondary" id="${line.id}-cancel-btn" onclick="cancelEdit('${line.id}')" style="display:none;">❌ Cancel</button>
+                </div>
+            </div>
+            
+            <h3>📋 Structure List</h3>
+            <p class="small-note">👉 I-scroll pakanan para makita ang lahat → | 🔁 = Napalitan ang numero/lokasyon</p>
+            <div class="table-wrapper" id="${line.id}-list"></div>
+        </section>`;
+    });
+    
+    renderAllLineLists();
+    renderShutdownSummary();
+}
+
+// === SUGGEST POLES BY TYPE ===
+
+// === CLEAR FORM ===
+function clearForm(lineId) {
+    document.getElementById(lineId + '-struct-no').value = '';
+    document.getElementById(lineId + '-old-no').value = '';
+    document.getElementById(lineId + '-struct-type').value = '';
+    editingId = null;
+    document.getElementById(lineId + '-form-title').textContent = '➕ Magdagdag ng Structure';
+    document.getElementById(lineId + '-save-btn').textContent = '➕ Save Structure';
+    document.getElementById(lineId + '-cancel-btn').style.display = 'none';
+    document.getElementById(lineId + '-form-card').classList.remove('edit-mode');
+}
+
+// === CANCEL EDIT ===
+function cancelEdit(lineId) {
+    clearForm(lineId);
+}
+
+// === EDIT STRUCTURE ===
+function editStructure(lineId, id) {
+    const item = data[lineId].find(x => x.id === id);
+    if(!item) return;
+    editingId = id;
+    const prefix = lineId + '-';
+    document.getElementById(prefix + 'struct-no').value = item.no;
+    document.getElementById(prefix + 'old-no').value = item.oldNo || '';
+    document.getElementById(prefix + 'struct-type').value = item.type;
+    document.getElementById(prefix + 'form-title').textContent = '✏️ Nag-e-edit: ' + (item.oldNo ? item.oldNo + ' → ' : '') + item.no;
+    document.getElementById(prefix + 'save-btn').textContent = '✅ I-update ang Structure';
+    document.getElementById(prefix + 'cancel-btn').style.display = 'inline-block';
+    document.getElementById(prefix + 'form-card').classList.add('edit-mode');
+    document.getElementById(lineId).scrollIntoView({ behavior: 'smooth' });
+}
+
+// === SAVE STRUCTURE (numero, dating numero, type lang) ===
+function saveStructure(lineId) {
+    const prefix = lineId + '-';
+    const no = document.getElementById(prefix + 'struct-no').value.trim();
+    const oldNo = document.getElementById(prefix + 'old-no').value.trim();
+    const type = document.getElementById(prefix + 'struct-type').value;
+    if(!no || !type) { alert('Ilagay ang Bagong Structure No. at Uri!'); return; }
+    if(!data[lineId]) data[lineId] = [];
+    const arr = data[lineId];
+    const existing = editingId ? arr.find(x => x.id === editingId) : null;
+    const dupe = arr.find(x => x !== existing && String(x.no).trim().toLowerCase() === no.toLowerCase() && x.type === type);
+    if(dupe) { alert('Hindi tinanggap: mayroon nang Structure ' + no + ' (Type ' + type + ') sa project site na ito.'); return; }
+
+    if(existing) {
+        if(oldNo && oldNo !== no) {
+            if(!confirm('⚠️ BINAGO ANG STRUCTURE NUMBER:\nDati: ' + oldNo + '\nNgayon: ' + no + '\n\nLalabas ito na may markang "🔁 CHANGED".\nI-click ang OK para magpatuloy.')) return;
+        } else if(!confirm('⚠️ SIGURADO KA BA? I-a-update ang impormasyon ng structure na ito.\nI-click ang OK para magpatuloy.')) return;
+        Object.assign(existing, { no, oldNo, type });
+        notify('Nai-update na ang structure.');
+    } else {
+        if(oldNo) {
+            if(!confirm('⚠️ LUMANG NUMERO NA ILALAGAY:\nDati: ' + oldNo + '\nBago: ' + no + '\n\nLalabas ito na may markang "🔁 CHANGED".\nI-click ang OK para magpatuloy.')) return;
+        }
+        arr.push({ id: Date.now(), no, oldNo, type, poles: getDefaultPoles(type) || 1, remarks: '' });
+        notify('Naidagdag na ang structure. Pumunta sa 🪜 Mga Hakbang para sa mga petsa.');
+    }
+    saveAllData();
+    clearForm(lineId);
+    renderAllLineLists();
+    updateDashboard();
+}
+
+// === MGA HAKBANG PAGE ===
+const STEP_KEYS = ['roadside','excavation','dragging','erection','anchor','transferAlpha','transferBravo','transferCharlie','retrieval'];
+let stSel = new Set();
+function stepsRefresh() {
+    const site = document.getElementById('st-site');
+    const cur = site.value;
+    site.innerHTML = lines.map(l => '<option value="' + l.id + '"' + (l.id === cur ? ' selected' : '') + '>' + escapeHtml(l.name) + '</option>').join('');
+    stepsFillStructs([...stSel]);
+    loadSteps();
+}
+function stepsFillStructs(keep) {
+    const lineId = document.getElementById('st-site').value;
+    const list = sortedStructures(data[lineId] || []);
+    const valid = new Set(list.map(x => String(x.id)));
+    stSel = new Set((keep || []).map(String).filter(id => valid.has(id)));
+    const ftEl = document.getElementById('st-filter-type');
+    if(ftEl && ftEl.options.length <= 1) ftEl.innerHTML = '<option value="">All types</option>' + PRICE_TYPES.map(t => '<option value="' + t + '">Type ' + t + '</option>').join('');
+    const fStatus = document.getElementById('st-filter-status').value, fType = ftEl ? ftEl.value : '';
+    const shown = list.filter(x => (!fStatus || getStatus(x).text.includes(fStatus)) && (!fType || String(x.type) === fType));
+    document.getElementById('st-pick-list').innerHTML = shown.length ? shown.map(x => '<label class="po-row"><input type="checkbox" class="st-chk" value="' + x.id + '"' + (stSel.has(String(x.id)) ? ' checked' : '') + '><span><strong>' + escapeHtml(x.no) + '</strong> · ' + escapeHtml(x.type) + '</span></label>').join('')
+      : '<p class="small-note">No structure in this project site yet.</p>';
+    stPickText();
+}
+// Kapag nagbago ang filter, hindi nawawala ang mga napili na
+function stepsFilterChanged() {
+    const visible = [...document.querySelectorAll('#st-pick-list .st-chk')].map(c => c.value);
+    const checked = [...document.querySelectorAll('#st-pick-list .st-chk:checked')].map(c => c.value);
+    const kept = [...stSel].filter(id => !visible.includes(String(id)) || checked.includes(String(id)));
+    stepsFillStructs([...new Set([...kept, ...checked])]);
+}
+function stPickText() {
+    const nos = [...document.querySelectorAll('#st-pick-list .st-chk:checked')].map(c => c.parentElement.querySelector('strong').textContent);
+    document.getElementById('st-pick-txt').textContent = nos.length ? nos.join(', ') + ' (' + nos.length + ')' : 'Pumili ng structure';
+}
+function stPickAll(on) {
+    document.querySelectorAll('#st-pick-list .st-chk').forEach(c => { c.checked = on; });
+    stSel = new Set(on ? [...document.querySelectorAll('#st-pick-list .st-chk')].map(c => c.value) : []);
+    stPickText(); loadSteps();
+}
+document.addEventListener('change', function(e) {
+    const c = e.target;
+    if(c.classList && c.classList.contains('st-chk')) { if(c.checked) stSel.add(c.value); else stSel.delete(c.value); stPickText(); loadSteps(); }
+});
+function stepsSiteChanged() { stepsFillStructs([]); loadSteps(); }
+function stepsSelected() {
+    const lineId = document.getElementById('st-site').value;
+    const items = sortedStructures(data[lineId] || []).filter(x => stSel.has(String(x.id)));
+    return { lineId, items };
+}
+// === PER-POSTE (ERECTION) AT PER-BUTAS (EXCAVATION) ===
+const UNIT_FIELD = { erection: 'erectionPoles', excavation: 'excavationHoles', dragging: 'draggingPoles', roadside: 'roadsidePoles' };
+function unitsOf(item, kind) {
+    const n = Math.max(1, parseInt(item.poles) || 1), arr = item[UNIT_FIELD[kind]];
+    return Array.from({ length: n }, (_, i) => {
+        if(arr) return { date: (arr[i] && arr[i].date) || '', by: (arr[i] && arr[i].by) || '' };
+        return { date: item[kind + 'Date'] || '', by: item[kind + 'By'] || '' };
+    });
+}
+function setUnits(item, kind, rows) {
+    item[UNIT_FIELD[kind]] = rows.map(r => ({ date: r.date || '', by: (r.by || '').trim() }));
+    const allDone = rows.every(r => r.date);
+    item[kind + 'Date'] = allDone ? rows.map(r => r.date).sort().pop() : '';
+    const bys = [...new Set(rows.map(r => (r.by || '').trim()).filter(Boolean))];
+    item[kind + 'By'] = bys.length === 1 ? bys[0] : '';
+}
+function applyUnits(item, kind, rows) {
+    const cur = unitsOf(item, kind);
+    rows.forEach((r, i) => { if(i < cur.length) { if(r.date) cur[i].date = r.date; if(r.by) cur[i].by = r.by; } });
+    setUnits(item, kind, cur);
+}
+function readUnits(kind) {
+    return [...document.querySelectorAll('#st-' + kind + '-list .unit-row')].map(el => ({
+        date: el.querySelector('.u-date').value,
+        by: el.querySelector('.u-by').value.trim()
+    }));
+}
+function renderUnits(kind, rows) {
+    const box = document.getElementById('st-' + kind + '-list');
+    const lbl = kind === 'excavation' ? 'Hole' : 'Pole';
+    box.innerHTML = rows.map((r, i) =>
+        '<div class="unit-row" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px;background:var(--soft)">' +
+        '<div style="font-weight:700;color:var(--navy);font-size:13px;margin-bottom:2px">' + lbl + ' ' + (i + 1) + '</div>' +
+        '<label>Date</label><input type="date" class="u-date">' +
+        '<label style="margin-top:6px">👷 Gumawa</label><select class="worker-sel u-by"></select></div>'
+    ).join('');
+    fillWorkerSelects();
+    box.querySelectorAll('.unit-row').forEach((el, i) => {
+        el.querySelector('.u-date').value = rows[i].date || '';
+        setWorkerSel(el.querySelector('.u-by'), rows[i].by || '');
+    });
+}
+function copyUnitsToAll(kind) {
+    const rows = readUnits(kind);
+    if(!rows.length) return;
+    renderUnits(kind, rows.map(() => ({ date: rows[0].date, by: rows[0].by })));
+}
+function resizeUnits() {
+    const n = Math.max(1, parseInt(document.getElementById('st-pole-qty').value) || 1);
+    ['erection', 'excavation', 'dragging', 'roadside'].forEach(kind => {
+        const cur = readUnits(kind);
+        renderUnits(kind, Array.from({ length: n }, (_, i) => cur[i] || { date: '', by: '' }));
+    });
+}
+function stBlank() {
+    ['anchor'].forEach(k => { document.getElementById('st-' + k + '-date').value = ''; });
+    STEP_KEYS.forEach(k => { const e = document.getElementById('st-' + k + '-by'); if(e) e.value = ''; });
+    document.getElementById('st-anchor-qty').value = '';
+    ['alpha','bravo','charlie'].forEach(n => { document.getElementById('st-trans-' + n).checked = false; document.getElementById('st-trans-' + n + '-date').value = ''; });
+    document.getElementById('st-retrieval-date').value = '';
+    document.getElementById('st-retrieval-complete').checked = false;
+}
+function loadSteps() {
+    const { items } = stepsSelected();
+    const card = document.getElementById('st-card'), note = document.getElementById('st-multi-note');
+    if(!items.length) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    const multi = items.length > 1;
+    document.getElementById('st-pole-wrap').style.display = multi ? 'none' : '';
+    document.getElementById('st-remarks-wrap').style.display = multi ? 'none' : '';
+    note.style.display = multi ? 'block' : 'none';
+    if(multi) {
+        document.getElementById('st-title').textContent = '🪜 ' + items.length + ' structure ang napili';
+        note.textContent = 'Ilalapat sa lahat ng ' + items.length + ' structure ang mga petsa, gumawa, at dami ng anchor na ilalagay mo sa ibaba. Ang mga blangko ay hindi magbabago.';
+        stBlank();
+        const mx = Math.max(...items.map(i => parseInt(i.poles) || 1));
+        const blank = Array.from({ length: mx }, () => ({ date: '', by: '' }));
+        renderUnits('erection', blank);
+        renderUnits('excavation', blank);
+        renderUnits('dragging', blank);
+        renderUnits('roadside', blank);
+    } else {
+        const item = items[0];
+        document.getElementById('st-title').textContent = '🪜 ' + (item.oldNo ? item.oldNo + ' → ' : '') + 'Structure ' + item.no + ' (Type ' + item.type + ')';
+        document.getElementById('st-pole-qty').value = item.poles || 1;
+        document.getElementById('st-remarks').value = item.remarks || '';
+        STEP_KEYS.forEach(k => { const e = document.getElementById('st-' + k + '-by'); if(e) setWorkerSel(e, item[k + 'By'] || (k.startsWith('transfer') ? item.transferBy : '') || ''); });
+        ['anchor'].forEach(k => { document.getElementById('st-' + k + '-date').value = item[k + 'Date'] || ''; });
+        renderUnits('erection', unitsOf(item, 'erection'));
+        renderUnits('excavation', unitsOf(item, 'excavation'));
+        renderUnits('dragging', unitsOf(item, 'dragging'));
+        renderUnits('roadside', unitsOf(item, 'roadside'));
+        document.getElementById('st-anchor-qty').value = item.anchorQty === undefined ? '' : item.anchorQty;
+        ['Alpha','Bravo','Charlie'].forEach(n => {
+            document.getElementById('st-trans-' + n.toLowerCase()).checked = !!item['transfer' + n];
+            document.getElementById('st-trans-' + n.toLowerCase() + '-date').value = item['transfer' + n + 'Date'] || '';
+        });
+        document.getElementById('st-retrieval-date').value = item.retrievalDate || '';
+        document.getElementById('st-retrieval-complete').checked = !!item.retrievalComplete;
+    }
+    refreshStageBadges();
+}
+function openSteps(lineId, id) {
+    showTab('stepsPage');
+    document.getElementById('st-site').value = lineId;
+    stepsFillStructs([id]);
+    loadSteps();
+}
+// Kapag may petsa ang Retrieve, lalagyan ng parehong petsa ang mga hakbang na wala pang petsa.
+// Hindi ginagalaw ang mga hakbang na may petsa na.
+function fillFromRetrieval(item) {
+    const d = item.retrievalDate;
+    if(!d) return;
+    if(!item.anchorDate) item.anchorDate = d;
+    ['erection', 'excavation', 'dragging', 'roadside'].forEach(kind => {
+        const rows = unitsOf(item, kind).map(u => ({ date: u.date || d, by: u.by }));
+        setUnits(item, kind, rows);
+    });
+    ['Alpha', 'Bravo', 'Charlie'].forEach(n => {
+        if(!item['transfer' + n + 'Date']) { item['transfer' + n] = true; item['transfer' + n + 'Date'] = d; }
+    });
+}
+function saveSteps() {
+    const { items } = stepsSelected();
+    if(!items.length) { alert('Pumili muna ng structure.'); return; }
+    const v = id => document.getElementById(id).value;
+    const pairs = [['Alpha', 'st-trans-alpha'], ['Bravo', 'st-trans-bravo'], ['Charlie', 'st-trans-charlie']];
+    for(const [name, id] of pairs) {
+        const ck = document.getElementById(id).checked, dt = v(id + '-date');
+        if(ck && !dt) { alert('Pumili ng petsa para sa ' + name + '.'); return; }
+        if(dt && !ck) { alert('I-check ang ' + name + ' dahil may inilagay kang petsa.'); return; }
+    }
+    const multi = items.length > 1;
+    const q = v('st-anchor-qty');
+    const eRows = readUnits('erection'), xRows = readUnits('excavation'), dRows = readUnits('dragging'), rRows = readUnits('roadside');
+    items.forEach(item => {
+        if(multi) {
+            STEP_KEYS.forEach(k => { const e = document.getElementById('st-' + k + '-by'); if(e && e.value.trim()) item[k + 'By'] = e.value.trim(); });
+            ['anchor'].forEach(k => { const d = v('st-' + k + '-date'); if(d) item[k + 'Date'] = d; });
+            applyUnits(item, 'erection', eRows);
+            applyUnits(item, 'excavation', xRows);
+            applyUnits(item, 'dragging', dRows);
+            applyUnits(item, 'roadside', rRows);
+            if(q !== '') item.anchorQty = parseInt(q) || 0;
+            pairs.forEach(([name, id]) => { if(document.getElementById(id).checked && v(id + '-date')) { item['transfer' + name] = true; item['transfer' + name + 'Date'] = v(id + '-date'); } });
+            if(v('st-retrieval-date')) item.retrievalDate = v('st-retrieval-date');
+            if(document.getElementById('st-retrieval-complete').checked) item.retrievalComplete = true;
+        } else {
+            item.poles = parseInt(v('st-pole-qty')) || 1;
+            item.remarks = v('st-remarks').trim();
+            STEP_KEYS.forEach(k => { const e = document.getElementById('st-' + k + '-by'); if(e) item[k + 'By'] = e.value.trim(); });
+            ['anchor'].forEach(k => { item[k + 'Date'] = v('st-' + k + '-date'); });
+            setUnits(item, 'erection', eRows);
+            setUnits(item, 'excavation', xRows);
+            setUnits(item, 'dragging', dRows);
+            setUnits(item, 'roadside', rRows);
+            item.anchorQty = q === '' ? undefined : (parseInt(q) || 0);
+            item.transferAlpha = document.getElementById('st-trans-alpha').checked;
+            item.transferBravo = document.getElementById('st-trans-bravo').checked;
+            item.transferCharlie = document.getElementById('st-trans-charlie').checked;
+            item.transferAlphaDate = v('st-trans-alpha-date');
+            item.transferBravoDate = v('st-trans-bravo-date');
+            item.transferCharlieDate = v('st-trans-charlie-date');
+            item.retrievalDate = v('st-retrieval-date');
+            item.retrievalComplete = document.getElementById('st-retrieval-complete').checked;
+        }
+    });
+    items.forEach(fillFromRetrieval);
+    items.forEach(it => unitsOf(it, 'erection').concat(unitsOf(it, 'excavation'), unitsOf(it, 'dragging'), unitsOf(it, 'roadside')).forEach(u => {
+        const n = (u.by || '').trim();
+        if(n && !workers.some(w => sameName(w, n))) workers.push(n);
+    }));
+    saveWorkers();
+    saveAllData();
+    renderAllLineLists();
+    updateDashboard();
+    const msg = 'Na-save ang mga hakbang ng ' + (multi ? items.length + ' structure' : 'structure ' + items[0].no) + '.';
+    document.querySelectorAll('#st-card details.stage, #st-pick').forEach(d => { d.open = false; });
+    stepsFillStructs([]);
+    loadSteps();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    notify(msg);
+}
+
+// === DELETE STRUCTURE ===
+function deleteStructure(lineId, id) {
+    if(confirm('⚠️ SIGURADO KA BA? Buburahin na nang tuluyan ang structure na ito.\nHindi na ito mababawi.\nI-click ang OK para magpatuloy.')) {
+        data[lineId] = data[lineId].filter(x => x.id !== id);
+        saveAllData();
+        renderAllLineLists();
+        updateDashboard();
+    }
+}
+
+// === FORMAT DATE ===
+function fmtDate(d) {
+    if(!d) return '-';
+    const date = new Date(d + 'T00:00:00');
+    if(Number.isNaN(date.getTime())) return '-';
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'][date.getMonth()];
+    const year = String(date.getFullYear()).slice(-2);
+    return day + month + year; // halimbawa: 01jan26
+}
+
+// === FORMAT TRANSFER TYPES ===
+function fmtTransfer(item) {
+    let types = [];
+    if(item.transferAlpha) types.push('Alpha (' + fmtDate(item.transferAlphaDate) + ')');
+    if(item.transferBravo) types.push('Bravo (' + fmtDate(item.transferBravoDate) + ')');
+    if(item.transferCharlie) types.push('Charlie (' + fmtDate(item.transferCharlieDate) + ')');
+    return types.length > 0 ? types.join(', ') : '-';
+}
+
+// === RENDER ONE LINE LIST ===
+function sortedStructures(arr) {
+    return [...arr].sort((a, b) =>
+        String(a.no).localeCompare(String(b.no), undefined, { numeric: true, sensitivity: 'base' }) ||
+        String(a.type).localeCompare(String(b.type)));
+}
+function renderLineList(lineId) {
+    updateWorkersList();
+    const arr = data[lineId] || [];
+    const container = document.getElementById(lineId + '-list');
+    
+    if(!container) return;
+    
+    if(arr.length === 0) {
+        container.innerHTML = '<p style="color:#888; text-align:center; padding:20px">No structure yet.</p>';
+        return;
+    }
+    
+    let html = '<table class="tight"><thead><tr><th>Status</th><th>Struct No.</th><th>Type</th><th>Poles</th><th>Roadside</th><th>Excavation</th><th>Dragging</th><th>Erection</th><th>Anchor Screw / Lag</th><th>Phase (A / B / C)</th><th>Retrieval</th><th>Contractor</th><th>Remarks</th><th>Actions</th></tr></thead><tbody>';
+    
+    arr.forEach(markStructureStatus);
+    sortedStructures(arr).forEach(item => {
+        const status = getStatus(item);
+        let structNoDisplay = '';
+        if(item.oldNo && item.oldNo !== item.no) {
+            structNoDisplay = `<span class="old-value">${item.oldNo}</span><br><span class="new-value">${item.no}</span>`;
+        } else {
+            structNoDisplay = `<strong>${item.no}</strong>`;
+        }
+        
+        html += `
+        <tr data-sid="${item.id}">
+            <td><span class="status ${status.class}">${status.text}</span>${newRibbon('s|' + item.id)}</td>
+            <td>${structNoDisplay}</td>
+            <td>${item.type}</td>
+            <td>${item.poles}</td>
+            ${mk(item.roadsideDate)}
+            ${mk(item.excavationDate)}
+            ${mk(item.draggingDate)}
+            ${mk(item.erectionDate)}
+            ${anchorCell(item)}
+            <td>${phaseChips(item)}</td>
+            ${mk(item.retrievalComplete ? (item.retrievalDate || 'tapos') : '')}
+            ${workersCell(item)}
+            <td style="max-width:120px; font-size:11px;">${item.remarks || '-'}</td>
+            <td>
+                <button class="edit-btn" onclick="openSteps('${lineId}', ${item.id})">🪜 Step</button>
+                <button class="edit-btn" onclick="editStructure('${lineId}', ${item.id})">✏️ Edit</button>
+                <button class="btn-sm" onclick="deleteStructure('${lineId}', ${item.id})">🗑️</button>
+            </td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// === RENDER ALL LINE LISTS ===
+function renderAllLineLists() {
+    lines.forEach(line => renderLineList(line.id));
+}
+
+function renderDashExtras() {
+    const today = todayISO(), dayMs = 86400000;
+    const daysOld = d => Math.floor((new Date(today) - new Date(d)) / dayMs);
+    const late = pos.filter(p => !p.signature && p.date && daysOld(p.date) >= 7);
+    document.getElementById('dash-po-remind').innerHTML = late.length
+        ? '<strong>⚠️ ' + late.length + ' PO(s) unsigned for 7 days or more:</strong><br>' +
+          late.map(p => escapeHtml(p.poNo) + ' (' + escapeHtml(p.worker || '-') + ') · ' + daysOld(p.date) + ' days').join('<br>')
+        : '<span class="small-note">No PO is unsigned for more than 7 days. ✅</span>';
+    const stages = [['Roadside', 'roadsideDate'], ['Excavation', 'excavationDate'], ['Dragging', 'draggingDate'], ['Anchor/Lag', 'anchorDate'], ['Erection', 'erectionDate'], ['Transfer Alpha', 'transferAlphaDate'], ['Transfer Bravo', 'transferBravoDate'], ['Transfer Charlie', 'transferCharlieDate'], ['Retrieve', 'retrievalDate']];
+    const counts = stages.map(() => 0);
+    Object.values(data).forEach(list => (list || []).forEach(x => stages.forEach(([, f], i) => {
+        if(x[f]) { const n = daysOld(x[f]); if(n >= 0 && n < 7) counts[i]++; }
+    })));
+    const total = counts.reduce((a, b) => a + b, 0);
+    document.getElementById('dash-week').innerHTML =
+        '<div class="tile"><span>Total steps</span><b>' + total + '</b></div>' +
+        stages.map((st, i) => '<div class="tile"><span>' + st[0] + '</span><b>' + counts[i] + '</b></div>').join('');
+}
+// NEW markers: nakikita sa 5 pagbukas ng app, pagkatapos ay mawawala
+const NEW_VIEWS = 5;
+let newStore = null, strStatus = null, dashSeen = null;
+function newAll() {
+    if(!newStore) { try { newStore = JSON.parse(localStorage.getItem('proj_new_v1') || '{}') || {}; } catch(e) { newStore = {}; } }
+    return newStore;
+}
+function newSave() { try { localStorage.setItem('proj_new_v1', JSON.stringify(newAll())); } catch(e) {} }
+function newCount(key) { const m = newAll()[key]; return (m && m.v < NEW_VIEWS) ? m.n : 0; }
+function newAdd(key, add) {
+    const all = newAll(), cur = all[key];
+    const active = !!(cur && cur.v < NEW_VIEWS);
+    all[key] = { v: 0, n: (active ? cur.n : 0) + add };
+    newSave();
+}
+// Tatakbo kada bukas ng app: binibilang ang bawat pagbukas
+function newBumpViews() {
+    const all = newAll();
+    Object.keys(all).forEach(k => {
+        all[k].v = (all[k].v || 0) + 1;
+        if(all[k].v >= NEW_VIEWS) delete all[k];
+    });
+    newSave();
+}
+function newRibbon(key) { return newCount(key) ? ' <span class="ribbon">NEW</span>' : ''; }
+
+// Dashboard: bilang ng Completed, Erected, atbp. kada site
+function dashSeenAll() {
+    if(!dashSeen) { try { dashSeen = JSON.parse(localStorage.getItem('proj_dash_seen_v1') || '{}') || {}; } catch(e) { dashSeen = {}; } }
+    return dashSeen;
+}
+function dashTrack(lineId, key, cur) {
+    const seen = dashSeenAll();
+    seen[lineId] = seen[lineId] || {};
+    const prev = seen[lineId][key];
+    const base = (prev && typeof prev === 'object') ? prev.n : prev;
+    const mk = 'd|' + lineId + '|' + key;
+    if(base === undefined) seen[lineId][key] = cur;
+    else { if(cur > base) newAdd(mk, cur - base); seen[lineId][key] = cur; }
+    try { localStorage.setItem('proj_dash_seen_v1', JSON.stringify(seen)); } catch(e) {}
+    return newCount(mk);
+}
+
+// Structure list: may NEW kapag nagbago ang status ng structure
+function markStructureStatus(item) {
+    if(strStatus === null) { try { strStatus = JSON.parse(localStorage.getItem('proj_str_status_v1') || '{}') || {}; } catch(e) { strStatus = {}; } }
+    const id = String(item.id), st = getStatus(item).text, prev = strStatus[id];
+    if(prev === undefined) strStatus[id] = st;
+    else if(prev !== st) { newAdd('s|' + id, 1); strStatus[id] = st; }
+    try { localStorage.setItem('proj_str_status_v1', JSON.stringify(strStatus)); } catch(e) {}
+}
+
+function updateDashboard() {
+    try { renderDashExtras(); } catch(e) { console.error('[dash-extras]', e); }
+    const dashContainer = document.getElementById('dash-lines');
+    let gStructs = 0, gPoles = 0, gCleared = 0, gClearedPoles = 0;
+    const ribbon = n => n ? ' <span class="ribbon">' + n + ' NEW</span>' : '';
+    const kv = (k, v, cls, rib) => '<div class="kv' + (cls ? ' ' + cls : '') + '"><span>' + k + '</span>' + (rib ? '<span class="kv-val"><b>' + v + '</b>' + rib + '</span>' : '<b>' + v + '</b>') + '</div>';
+
+    let html = '<div class="grid">';
+    lines.forEach(line => {
+        const items = data[line.id] || [];
+        const texts = items.map(i => getStatus(i).text);
+        const count = w => texts.filter(t => t.includes(w)).length;
+        const cleared = count('COMPLETED'), erected = count('ERECTED'), transferred = count('TRANSFERRED');
+        const prepared = count('ALREADY PREPARED'), inProg = count('IN PROGRESS'), notStarted = count('NOT STARTED');
+        const polesPlaced = items.reduce((a, i) => a + (parseInt(i.poles) || 0), 0);
+        const clearedPoles = items.filter(i => getStatus(i).text.includes('COMPLETED')).reduce((a, i) => a + (parseInt(i.poles) || 0), 0);
+        const sdDone = (shutdowns[line.id] || []).length;
+        const sdPlanned = parseInt(line.totalShutdowns) || 0;
+        gStructs += items.length; gPoles += polesPlaced; gCleared += cleared; gClearedPoles += clearedPoles;
+
+        const pct = line.totalStructures ? Math.min(100, Math.round(polesPlaced / line.totalStructures * 100)) : 0;
+        const newCleared = dashTrack(line.id, 'cleared', cleared);
+        const newErected = dashTrack(line.id, 'erected', erected);
+
+        html += `
+        <div class="card site-card">
+            <h3>📍 ${escapeHtml(line.name)}</h3>
+            <div class="pbar" title="${pct}% of Target Poles"><i style="width:${pct}%"></i></div>
+            <div class="pbar-note">${pct}% of Target Poles</div>
+            ${sdPlanned ? kv('Remaining shutdowns', Math.max(0, sdPlanned - sdDone)) : ''}
+                        ${kv('Completed', cleared, '', ribbon(newCleared))}
+            ${kv('Erected', erected, '', ribbon(newErected))}
+            ${kv('Transferred', transferred, 'purple', ribbon(dashTrack(line.id, 'transferred', transferred)))}
+            ${kv('Prepared', prepared, '', ribbon(dashTrack(line.id, 'prepared', prepared)))}
+            ${kv('In progress', inProg, '', ribbon(dashTrack(line.id, 'inprogress', inProg)))}
+            ${kv('Not started', notStarted)}
+        </div>`;
+    });
+    html += '</div>';
+    if(lines.length === 0) {
+        html = '<p style="color:#888; text-align:center; padding:30px">No project site yet. Go to ➕ Add Project Site to begin.</p>';
+    }
+
+    dashContainer.innerHTML = html;
+    document.getElementById('grand-structures').textContent = gStructs;
+    document.getElementById('grand-poles').textContent = gPoles;
+    document.getElementById('grand-cleared').textContent = gCleared;
+    document.getElementById('grand-cleared-poles').textContent = gClearedPoles + ' poles';
+    document.getElementById('grand-remaining').textContent = gStructs - gCleared;
+    document.getElementById('grand-remaining-poles').textContent = (gPoles - gClearedPoles) + ' poles';
+
+    renderReport();
+}
+
+// === RENDER REPORT ===
+function renderReport() {
+    const container = document.getElementById('report-content');
+    let html = '';
+    lines.forEach(line => {
+        const items = sortedStructures(data[line.id] || []);
+        html += '<h3>📍 ' + escapeHtml(line.name) + '</h3>';
+        html += '<div class="table-wrapper"><table style="min-width:900px"><thead><tr><th>Status</th><th>Old No.</th><th>New No.</th><th>Type</th><th>Poles</th><th>Roadside</th><th>Excavation</th><th>Dragging</th><th>Erection</th><th>Anchor/Lag</th><th>Transfer</th><th>Retrieval</th><th>Remarks</th></tr></thead><tbody>';
+        items.forEach(item => {
+            html += '<tr><td>' + getStatus(item).text + '</td><td>' + escapeHtml(item.oldNo || '-') + '</td><td><strong>' + escapeHtml(item.no) + '</strong></td><td>' + escapeHtml(item.type) + '</td><td>' + (item.poles || '-') + '</td>' +
+              '<td>' + fmtDate(item.roadsideDate) + '</td><td>' + fmtDate(item.excavationDate) + '</td><td>' + fmtDate(item.draggingDate) + '</td><td>' + fmtDate(item.erectionDate) + '</td><td>' + fmtDate(item.anchorDate) + (item.anchorQty ? ' (×' + item.anchorQty + ')' : '') + '</td>' +
+              '<td>' + fmtTransfer(item) + '</td><td>' + (item.retrievalComplete ? '✅ COMPLETED' : '⏳ NOT YET') + '</td><td>' + escapeHtml(item.remarks || '-') + '</td></tr>';
+        });
+        html += '</tbody></table></div><br>';
+    });
+    container.innerHTML = lines.length ? html : '<p style="color:#888">No data for the report yet.</p>';
+}
+
+// === NAVIGATION ===
+function openMenu() { document.body.classList.add('menu-open'); document.getElementById('menu-btn').setAttribute('aria-expanded', 'true'); }
+function closeMenu() { document.body.classList.remove('menu-open'); document.getElementById('menu-btn').setAttribute('aria-expanded', 'false'); }
+function toggleMenu() { document.body.classList.contains('menu-open') ? closeMenu() : openMenu(); }
+document.addEventListener('keydown', function(e) { if(e.key === 'Escape') closeMenu(); });
+document.getElementById('main-nav').addEventListener('click', function(e) { if(e.target.closest('button[onclick*="showTab"]')) closeMenu(); });
+function showTab(id) {
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    const section = document.getElementById(id);
+    if(!section) return;
+    section.classList.add('active');
+    const button = Array.from(document.querySelectorAll('nav button')).find(b => (b.getAttribute('onclick') || '').includes("'" + id + "'"));
+    if(button) button.classList.add('active');
+    if(lines.some(l => l.id === id)) {
+        const hubBtn = Array.from(document.querySelectorAll('nav button')).find(b => (b.getAttribute('onclick') || '').includes("'linesHub'"));
+        if(hubBtn) hubBtn.classList.add('active');
+    }
+    const pt = document.getElementById('page-title'), ln = lines.find(l => l.id === id);
+    if(pt) pt.textContent = ln ? '📍 ' + ln.name : (button ? button.textContent.trim() : '');
+    window.scrollTo(0, 0);
+    if(id === 'linesHub') renderLinesHub();
+    if(id === 'shutdownPage') renderShutdownSummary();
+    if(id === 'stepsPage') { fillWorkerSelects(); stepsRefresh(); }
+    if(id === 'workersPage') renderWorkersPage();
+    if(id === 'pricesPage') { const d0 = document.querySelector('#pr-flat details.stage'); if(d0) d0.open = true; }
+    if(id === 'poPage') renderPO();
+    if(id === 'hwPage') hwRender();
+    
+    if(id === 'report') renderReport();
+    if(id === 'dashboard') updateDashboard();
+}
+
+// === INITIALIZE WITH DEFAULT LINES ===
+function initDefaults() {
+    if(lines.length === 0) {
+        lines = [
+            { id: 'line_hamtik', name: 'Sta. Barbara → Hamtik', totalStructures: 30 },
+            { id: 'line_ingore', name: 'Sta. Barbara → Ingore', totalStructures: 12 }
+        ];
+        data.line_hamtik = [];
+        data.line_ingore = [];
+        shutdowns.line_hamtik = [];
+        shutdowns.line_ingore = [];
+        saveLines();
+        saveAllData();
+    }
+}
+
+mergeSameDateShutdowns();
+syncWorkers();
+fillWorkerSelects();
+renderPrices();
+
+// === START ===
+function safeRun(name, fn) { try { fn(); } catch(e) { console.error('[' + name + ']', e); } }
+safeRun('defaults', initDefaults);
+safeRun('shutdowns', () => lines.forEach(line => { if(!shutdowns[line.id]) shutdowns[line.id] = []; }));
+safeRun('save-shutdowns', saveShutdowns);
+safeRun('nav', renderLinesNav);
+safeRun('lines', renderLinesList);
+safeRun('sections', buildDynamicSections);
+safeRun('views', newBumpViews);
+safeRun('dashboard', updateDashboard);
+</script>
+
+
+</body>
+</html>

@@ -285,7 +285,6 @@ tr.flash td{animation:flashrow 2.8s ease-out}
 
 <div class="container">
     <nav id="main-nav" aria-label="Menu">
-        <button id="cloud-btn" onclick="cloudLogin()" style="display:none">🔐 Mag-login</button>
         <div class="nav-brand"><strong>⚡ 69kV Rehab</strong><small>Project Progress Tracker</small></div>
         <div class="nav-label">Pangunahin</div>
         <button class="active" onclick="showTab('dashboard')">📊 Dashboard</button>
@@ -422,6 +421,11 @@ tr.flash td{animation:flashrow 2.8s ease-out}
             <h3>♻️ Restore</h3>
             <p class="small-note">Papalitan nito ang LAHAT ng kasalukuyang data. Mag-backup muna bago mag-restore.</p>
             <input type="file" accept=".json,application/json" onchange="restoreFromFile(this)" style="margin-top:8px">
+        </div>
+        <div class="card" style="margin-top:14px;border-left:5px solid #d32f2f">
+            <h3>🗑️ Clear all data</h3>
+            <p class="small-note">Buburahin ang LAHAT ng project site, structure, PO, pirma, at presyo, sa device na ito at sa cloud. Mag-backup muna.</p>
+            <button type="button" class="danger" style="margin-top:8px" onclick="clearAllData()">🗑️ Burahin lahat</button>
         </div>
     </section>
     <section id="pricesPage">
@@ -1124,6 +1128,17 @@ function signConfirm() {
     });
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => c.addEventListener(t, () => { signDrawing = false; }));
 })();
+
+// ----- Burahin lahat ng data (local at cloud) -----
+async function clearAllData() {
+    if(!confirm('Burahin ang LAHAT ng data? Hindi na ito maibabalik maliban kung may backup.')) return;
+    if(!confirm('Sigurado ka ba? Ito na ang huling pagkakataon bago mabura ang lahat.')) return;
+    try {
+        if(CLOUD.ok && CLOUD.on && CLOUD.ref) await CLOUD.ref.delete();
+    } catch(e) { console.error('[cloud delete]', e); }
+    Object.keys(localStorage).filter(k => k.startsWith('proj_')).forEach(k => localStorage.removeItem(k));
+    location.reload();
+}
 
 // ----- Backup / Restore -----
 function buildBackup() {
@@ -2228,18 +2243,8 @@ function showTab(id) {
 
 // === INITIALIZE WITH DEFAULT LINES ===
 function initDefaults() {
-    if(lines.length === 0) {
-        lines = [
-            { id: 'line_hamtik', name: 'Sta. Barbara → Hamtik', totalStructures: 30 },
-            { id: 'line_ingore', name: 'Sta. Barbara → Ingore', totalStructures: 12 }
-        ];
-        data.line_hamtik = [];
-        data.line_ingore = [];
-        shutdowns.line_hamtik = [];
-        shutdowns.line_ingore = [];
-        saveLines();
-        saveAllData();
-    }
+    // Walang awtomatikong sample na project site. Idadagdag ninyo ang sarili ninyo.
+    if(!Array.isArray(lines)) lines = [];
 }
 
 mergeSameDateShutdowns();
@@ -2295,8 +2300,8 @@ async function cloudPull() {
 function cloudShowStatus(email) {
   const b = document.getElementById('cloud-btn');
   if(!b) return;
-  if(!CLOUD.ok) { b.style.display = 'none'; return; }
   b.style.display = '';
+  if(!CLOUD.ok) { b.textContent = '⚠️ Login hindi available'; b.onclick = () => alert('Hindi ma-load ang Firebase. Suriin ang internet at subukang i-refresh ang page.'); return; }
   if(email) { b.textContent = '☁️ ' + email + ' · Mag-logout'; b.onclick = cloudLogout; }
   else { b.textContent = '🔐 Mag-login'; b.onclick = cloudLogin; }
 }
@@ -2313,10 +2318,23 @@ function cloudWatchAuth() {
     CLOUD.on = true;
     cloudShowStatus(user.email);
     const before = JSON.stringify(cloudCollect());
+    const localN = cloudCount(localStorage.getItem('proj_data'));
+    let remoteN = -1;
+    try {
+      const snap = await CLOUD.ref.get();
+      if(snap.exists) remoteN = cloudCount(((snap.data() || {}).data || {})['proj_data']);
+    } catch(e) { console.error('[cloud check]', e); return; }
+    // Kung mas kumpleto ang nasa device kaysa sa cloud, ipapadala ang device papuntang cloud. Hindi binubura ang device.
+    if(remoteN < 0 || localN > remoteN) { cloudPush(); return; }
     const pulled = await cloudPull();
-    if(!pulled) { cloudPush(); return; }
-    if(JSON.stringify(cloudCollect()) !== before) location.reload();
+    if(pulled && JSON.stringify(cloudCollect()) !== before) location.reload();
   });
+}
+function cloudCount(raw) {
+  try {
+    const obj = JSON.parse(raw || '{}') || {};
+    return Object.values(obj).reduce((a, v) => a + (Array.isArray(v) ? v.length : 0), 0);
+  } catch(e) { return 0; }
 }
 function lsSet(k, v) {
   localStorage.setItem(k, v);
@@ -2327,6 +2345,7 @@ function lsSet(k, v) {
 async function startApp() {
 cloudInit();
 cloudWatchAuth();
+cloudShowStatus(null);
 function safeRun(name, fn) { try { fn(); } catch(e) { console.error('[' + name + ']', e); } }
 safeRun('defaults', initDefaults);
 safeRun('shutdowns', () => lines.forEach(line => { if(!shutdowns[line.id]) shutdowns[line.id] = []; }));
@@ -2341,5 +2360,6 @@ startApp();
 </script>
 
 
+<button id="cloud-btn" onclick="cloudLogin()" style="position:fixed;right:12px;bottom:12px;z-index:999;padding:10px 14px;border-radius:999px;border:0;background:#0b3a5e;color:#fff;font-weight:700;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.25);display:none">🔐 Mag-login</button>
 </body>
 </html>

@@ -328,10 +328,7 @@ tr.flash td{animation:flashrow 2.8s ease-out}
                     <label>Project Site Name</label>
                     <input type="text" id="new-line-name" placeholder="Hal. Sta. Barbara → Hamtik">
                 </div>
-                <div>
-                    <label>Target Poles</label>
-                    <input type="number" id="new-line-total" placeholder="0">
-                </div>
+                <input type="hidden" id="new-line-total" value="0">
                 <div>
                     <label>Total Shutdowns (optional)</label>
                     <input type="number" id="new-line-shutdowns" placeholder="0" min="0">
@@ -561,6 +558,96 @@ tr.flash td{animation:flashrow 2.8s ease-out}
     </div>
 </div>
 <script>
+// === SHARED DATABASE (Firebase Firestore) ===
+const FB_CONFIG = {
+  apiKey: "AIzaSyAeMdRt_L0wV6ivtZzo2eCgWtaIwkQaHhM",
+  authDomain: "rehab-po.firebaseapp.com",
+  projectId: "rehab-po",
+  storageBucket: "rehab-po.firebasestorage.app",
+  messagingSenderId: "862993855886",
+  appId: "1:862993855886:web:803bbb22f09819da8ba0df"
+};
+const CLOUD = { ok: false, on: false, auth: null, ref: null, timer: null };
+function cloudInit() {
+  try {
+    if (typeof firebase === 'undefined') return;
+    if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+    CLOUD.auth = firebase.auth();
+    CLOUD.ref = firebase.firestore().collection('tracker').doc('main');
+    CLOUD.ok = true;
+  } catch(e) { console.error('[cloud init]', e); }
+}
+function cloudCollect() {
+  const out = {};
+  for(let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if(k && k.startsWith('proj_')) out[k] = localStorage.getItem(k);
+  }
+  return out;
+}
+function cloudPush() {
+  if(!CLOUD.ok || !CLOUD.on) return;
+  clearTimeout(CLOUD.timer);
+  CLOUD.timer = setTimeout(() => {
+    CLOUD.ref.set({ data: cloudCollect(), updated: new Date().toISOString() })
+      .catch(e => console.error('[cloud push]', e));
+  }, 400);
+}
+async function cloudPull() {
+  if(!CLOUD.ok || !CLOUD.on) return false;
+  try {
+    const snap = await CLOUD.ref.get();
+    if(!snap.exists) return false;
+    const d = (snap.data() || {}).data || {};
+    Object.keys(d).forEach(k => localStorage.setItem(k, d[k]));
+    return true;
+  } catch(e) { console.error('[cloud pull]', e); return false; }
+}
+function cloudShowStatus(email) {
+  const b = document.getElementById('cloud-btn');
+  if(!b) return;
+  b.style.display = '';
+  if(!CLOUD.ok) { b.textContent = '⚠️ Login hindi available'; b.onclick = () => alertMsg('Hindi ma-load ang Firebase. Suriin ang internet at subukang i-refresh ang page.'); return; }
+  if(email) { b.textContent = '☁️ ' + email + ' · Mag-logout'; b.onclick = cloudLogout; }
+  else { b.textContent = '🔐 Mag-login'; b.onclick = cloudLogin; }
+}
+function cloudLogin() {
+  if(CLOUD.ok) CLOUD.auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+}
+function cloudLogout() {
+  if(CLOUD.ok) CLOUD.auth.signOut().then(() => location.reload());
+}
+function cloudWatchAuth() {
+  if(!CLOUD.ok) { cloudShowStatus(null); return; }
+  CLOUD.auth.onAuthStateChanged(async user => {
+    if(!user) { CLOUD.on = false; cloudShowStatus(null); return; }
+    CLOUD.on = true;
+    cloudShowStatus(user.email);
+    const before = JSON.stringify(cloudCollect());
+    const localN = cloudCount(localStorage.getItem('proj_data'));
+    let remoteN = -1;
+    try {
+      const snap = await CLOUD.ref.get();
+      if(snap.exists) remoteN = cloudCount(((snap.data() || {}).data || {})['proj_data']);
+    } catch(e) { console.error('[cloud check]', e); return; }
+    // Kung mas kumpleto ang nasa device kaysa sa cloud, ipapadala ang device papuntang cloud. Hindi binubura ang device.
+    if(remoteN < 0 || localN > remoteN) { cloudPush(); return; }
+    const pulled = await cloudPull();
+    if(pulled && JSON.stringify(cloudCollect()) !== before) location.reload();
+  });
+}
+function cloudCount(raw) {
+  try {
+    const obj = JSON.parse(raw || '{}') || {};
+    return Object.values(obj).reduce((a, v) => a + (Array.isArray(v) ? v.length : 0), 0);
+  } catch(e) { return 0; }
+}
+function lsSet(k, v) {
+  localStorage.setItem(k, v);
+  if(String(k).startsWith('proj_')) cloudPush();
+}
+
+
 // === DATA ===
 let lines = JSON.parse(localStorage.getItem('proj_lines') || '[]');
 let data = JSON.parse(localStorage.getItem('proj_data') || '{}');
@@ -587,8 +674,8 @@ function saveAllData() {
 function saveShutdowns() {
     lsSet('proj_shutdowns', JSON.stringify(shutdowns));
 }
-function deleteShutdown(lineId, shutdownId) {
-    if(!confirm('Burahin ang shutdown record?')) return;
+async function deleteShutdown(lineId, shutdownId) {
+    if(!await askOk('Burahin ang shutdown record?')) return;
     shutdowns[lineId] = (shutdowns[lineId] || []).filter(x => x.id !== shutdownId);
     saveShutdowns();
     renderShutdownSummary();
@@ -789,15 +876,15 @@ function addShutdownGlobal() {
     const lineId = document.getElementById('sd-line').value;
     const date = document.getElementById('sd-date').value;
     const note = document.getElementById('sd-note').value.trim();
-    if(!lineId) { alert('Pumili muna ng Project Site.'); return; }
-    if(!date) { alert('Piliin muna ang Shutdown Date.'); return; }
+    if(!lineId) { alertMsg('Pumili muna ng Project Site.'); return; }
+    if(!date) { alertMsg('Piliin muna ang Shutdown Date.'); return; }
     const assignments = [];
     for(const r of document.querySelectorAll('#sd-rows .sd-row')) {
         const worker = r.querySelector('.sd-worker').value.trim();
         const ids = [...r.querySelectorAll('.sd-chk:checked')].map(c => Number(c.value));
         if(!worker && !ids.length) continue;
-        if(!worker) { alert('Ilagay ang pangalan ng gumawa para sa napiling mga structure.'); return; }
-        if(!ids.length) { alert('Pumili ng structure para kay ' + worker + '.'); return; }
+        if(!worker) { alertMsg('Ilagay ang pangalan ng gumawa para sa napiling mga structure.'); return; }
+        if(!ids.length) { alertMsg('Pumili ng structure para kay ' + worker + '.'); return; }
         assignments.push({ worker, structIds: ids });
     }
     if(!shutdowns[lineId]) shutdowns[lineId] = [];
@@ -945,11 +1032,11 @@ function nextPoNo() {
     const next = (used.length ? Math.max(...used) : 0) + 1;
     return prefix + String(next).padStart(3, '0');
 }
-function openPOForm(id) {
+async function openPOForm(id) {
     poEditId = id || null;
     const po = id ? pos.find(x => x.id === id) : null;
-    if(po && po.signature) { alert('Naka-pirma na ang PO na ito, hindi na mababago.'); poEditId = null; return; }
-    if(po && po.paid && !confirm('BAYAD NA ang PO na ito. I-e-edit pa rin?')) { poEditId = null; return; }
+    if(po && po.signature) { alertMsg('Naka-pirma na ang PO na ito, hindi na mababago.'); poEditId = null; return; }
+    if(po && po.paid && !await askOk('BAYAD NA ang PO na ito. I-e-edit pa rin?')) { poEditId = null; return; }
     document.getElementById('po-form').style.display = 'block';
     document.getElementById('po-form-title').textContent = po ? '✏️ I-edit ang PO' : '➕ Bagong PO';
     document.getElementById('po-no').value = po ? po.poNo : nextPoNo();
@@ -1006,14 +1093,14 @@ function poPickSite(lineId) {
 function savePO() {
     const poNo = document.getElementById('po-no').value.trim();
     const worker = document.getElementById('po-worker').value;
-    if(!poNo) { alert('Ilagay ang PO Number.'); return; }
-    if(!worker) { alert('Select contractor.'); return; }
-    if(pos.some(x => x.id !== poEditId && String(x.poNo).trim().toLowerCase() === poNo.toLowerCase())) { alert('Mayroon nang PO na may numerong ' + poNo + '.'); return; }
+    if(!poNo) { alertMsg('Ilagay ang PO Number.'); return; }
+    if(!worker) { alertMsg('Select contractor.'); return; }
+    if(pos.some(x => x.id !== poEditId && String(x.poNo).trim().toLowerCase() === poNo.toLowerCase())) { alertMsg('Mayroon nang PO na may numerong ' + poNo + '.'); return; }
     const items = poCalc();
-    if(!items.length) { alert('Pumili ng kahit isang structure.'); return; }
+    if(!items.length) { alertMsg('Pumili ng kahit isang structure.'); return; }
     const amount = Math.round(items.reduce((t, i) => t + i.amount, 0) * 100) / 100;
     const old = poEditId ? pos.find(x => x.id === poEditId) : null;
-    if(old && old.signature) { alert('Naka-pirma na ang PO na ito, hindi na mababago.'); return; }
+    if(old && old.signature) { alertMsg('Naka-pirma na ang PO na ito, hindi na mababago.'); return; }
     const rec = { id: poEditId || 'po_' + Date.now(), poNo, date: document.getElementById('po-date').value, worker, amount, note: document.getElementById('po-note').value.trim(), items, paid: old ? !!old.paid : false, paidDate: old ? old.paidDate || '' : '', preparedBy: document.getElementById('po-prepared').value.trim(), signature: old ? old.signature || '' : '', signedDate: old ? old.signedDate || '' : '' };
     if(poEditId) pos[pos.findIndex(x => x.id === poEditId)] = rec; else pos.push(rec);
     savePOs(); closePOForm(); renderPO();
@@ -1088,21 +1175,21 @@ function signClear() {
     signCtx().clearRect(0, 0, c.width, c.height);
     signInk = false;
 }
-function signPO(id) {
+async function signPO(id) {
     const po = pos.find(x => x.id === id);
     if(!po) return;
-    if(po.signature) { alert('Naka-pirma na ang PO na ito.'); return; }
+    if(po.signature) { alertMsg('Naka-pirma na ang PO na ito.'); return; }
     signPoId = id;
     document.getElementById('sign-title').textContent = '✍️ Sign: PO ' + po.poNo + ' (' + po.worker + ')';
     document.getElementById('sign-modal').style.display = 'block';
     signClear();
 }
-function signCancel() { document.getElementById('sign-modal').style.display = 'none'; signPoId = null; }
-function signConfirm() {
+async function signCancel() { document.getElementById('sign-modal').style.display = 'none'; signPoId = null; }
+async function signConfirm() {
     const po = pos.find(x => x.id === signPoId);
     if(!po) { signCancel(); return; }
-    if(!signInk) { alert('Gumuhit muna ng pirma.'); return; }
-    if(!confirm('Pirmahan ang PO ' + po.poNo + '? Mamarkahang BAYAD NA at hindi na mababago.')) return;
+    if(!signInk) { alertMsg('Gumuhit muna ng pirma.'); return; }
+    if(!await askOk('Pirmahan ang PO ' + po.poNo + '? Mamarkahang BAYAD NA at hindi na mababago.')) return;
     po.signature = document.getElementById('sign-canvas').toDataURL('image/png');
     po.signedDate = todayISO();
     po.paid = true; po.paidDate = todayISO();
@@ -1131,8 +1218,8 @@ function signConfirm() {
 
 // ----- Burahin lahat ng data (local at cloud) -----
 async function clearAllData() {
-    if(!confirm('Burahin ang LAHAT ng data? Hindi na ito maibabalik maliban kung may backup.')) return;
-    if(!confirm('Sigurado ka ba? Ito na ang huling pagkakataon bago mabura ang lahat.')) return;
+    if(!await askOk('Burahin ang LAHAT ng data? Hindi na ito maibabalik maliban kung may backup.')) return;
+    if(!await askOk('Sigurado ka ba? Ito na ang huling pagkakataon bago mabura ang lahat.')) return;
     try {
         if(CLOUD.ok && CLOUD.on && CLOUD.ref) await CLOUD.ref.delete();
     } catch(e) { console.error('[cloud delete]', e); }
@@ -1157,14 +1244,14 @@ function backupDownload() {
     document.body.appendChild(a); a.click(); a.remove();
     notify('Na-download ang backup.');
 }
-function restoreFromText(txt) {
+async function restoreFromText(txt) {
     let obj = null;
     try { obj = JSON.parse(String(txt || '').trim()); } catch(e) { obj = null; }
-    if(!obj || obj.app !== '69kV Rehab Tracker' || !obj.data) { alert('Hindi tamang backup.'); return; }
-    if(!confirm('Papalitan ng backup ang LAHAT ng kasalukuyang data.\nPetsa ng backup: ' + (obj.savedAt || '-') + '\n\nTuloy?')) return;
+    if(!obj || obj.app !== '69kV Rehab Tracker' || !obj.data) { alertMsg('Hindi tamang backup.'); return; }
+    if(!await askOk('Papalitan ng backup ang LAHAT ng kasalukuyang data.\nPetsa ng backup: ' + (obj.savedAt || '-') + '\n\nTuloy?')) return;
     Object.keys(localStorage).filter(k => k.startsWith('proj_')).forEach(k => localStorage.removeItem(k));
     Object.keys(obj.data).forEach(k => { if(k.startsWith('proj_')) lsSet(k, obj.data[k]); });
-    alert('Na-restore ang backup. Ili-reload ang page.');
+    alertMsg('Na-restore ang backup. Ili-reload ang page.');
     location.reload();
 }
 function restoreFromFile(input) {
@@ -1185,8 +1272,8 @@ function poOpenPreview(po, draft) {
 function poPreviewById(id) { const po = pos.find(x => x.id === id); if(po) poOpenPreview(po, false); }
 function poPreviewForm() {
     const worker = document.getElementById('po-worker').value, items = poCalc();
-    if(!worker) { alert('Pumili muna ng gumawa.'); return; }
-    if(!items.length) { alert('Pumili ng kahit isang structure para makita ang preview.'); return; }
+    if(!worker) { alertMsg('Pumili muna ng gumawa.'); return; }
+    if(!items.length) { alertMsg('Pumili ng kahit isang structure para makita ang preview.'); return; }
     const old = poEditId ? pos.find(x => x.id === poEditId) : null;
     poOpenPreview({ poNo: document.getElementById('po-no').value.trim(), date: document.getElementById('po-date').value, worker, note: document.getElementById('po-note').value.trim(),
         amount: items.reduce((t, i) => t + i.amount, 0), items, paid: old ? !!old.paid : false, paidDate: old ? old.paidDate : '' }, true);
@@ -1201,10 +1288,10 @@ function poPrint() {
     window.print();
 }
 document.addEventListener('keydown', function(e) { if(e.key === 'Escape') poClosePreview(); });
-function deletePO(id) {
+async function deletePO(id) {
     const po = pos.find(x => x.id === id);
-    if(po && po.signature) { alert('Naka-pirma na ang PO na ito, hindi na mabubura.'); return; }
-    if(!po || !confirm('Burahin ang PO ' + po.poNo + '?')) return;
+    if(po && po.signature) { alertMsg('Naka-pirma na ang PO na ito, hindi na mabubura.'); return; }
+    if(!po || !await askOk('Burahin ang PO ' + po.poNo + '?')) return;
     pos = pos.filter(x => x.id !== id); savePOs(); renderPO();
 }
 const PRICE_TYPES = ['B','C','D','E','HT','HS','3T','3C','3D'];
@@ -1292,7 +1379,7 @@ function hwCancelEdit() { hwEditIdx = -1; hwRender(); }
 function hwSaveEdit(i) {
     const name = document.getElementById('hw-ed-name').value.trim();
     const qty = document.getElementById('hw-ed-qty').value || '1';
-    if(!name) { alert('Ilagay ang pangalan ng part.'); return; }
+    if(!name) { alertMsg('Ilagay ang pangalan ng part.'); return; }
     const r = hwPartsAll()[hwCur()][i];
     r.name = name; r.qty = qty;
     hwPartsSave();
@@ -1325,7 +1412,7 @@ function hwCalc() {
 function hwAdd() {
     const name = document.getElementById('hw-new-name').value.trim();
     const qty = document.getElementById('hw-new-qty').value || '1';
-    if(!name) { alert('Ilagay ang pangalan ng part.'); return; }
+    if(!name) { alertMsg('Ilagay ang pangalan ng part.'); return; }
     const all = hwPartsAll(), t = hwCur();
     (all[t] = all[t] || []).push({ name: name, qty: qty });
     hwPartsSave();
@@ -1336,6 +1423,33 @@ function hwAdd() {
 function hwDel(i) { hwPartsAll()[hwCur()].splice(i, 1); hwPartsSave(); hwEditIdx = -1; hwRender(); }
 
 let toastTimer;
+// Dialog sa loob ng page (gumagana kahit sa artifact/preview na walang popup)
+function askOk(msg) {
+    return new Promise(resolve => {
+        const bg = document.createElement('div');
+        bg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:3000;display:flex;align-items:center;justify-content:center;padding:16px';
+        bg.innerHTML = '<div style="background:#fff;color:#17283b;max-width:420px;width:100%;border-radius:12px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.3)">' +
+            '<div data-msg style="white-space:pre-line;margin-bottom:16px;font-size:15px;line-height:1.5"></div>' +
+            '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+            '<button type="button" data-no class="secondary">Kanselahin</button>' +
+            '<button type="button" data-yes class="danger">OK</button></div></div>';
+        bg.querySelector('[data-msg]').textContent = msg;
+        const done = v => { bg.remove(); resolve(v); };
+        bg.querySelector('[data-yes]').onclick = () => done(true);
+        bg.querySelector('[data-no]').onclick = () => done(false);
+        bg.onclick = e => { if(e.target === bg) done(false); };
+        document.body.appendChild(bg);
+    });
+}
+function alertMsg(m) {
+    const t = document.getElementById('toast');
+    if(!t) return;
+    const text = String(m);
+    t.textContent = /^✅/.test(text) ? text : '⚠️ ' + text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+}
 function notify(msg) {
     const t = document.getElementById('toast');
     t.textContent = '✅ ' + msg;
@@ -1418,8 +1532,8 @@ function renderWorkersPage() {
 }
 function addWorkerName() {
     const inp = document.getElementById('wk-name'), name = inp.value.trim().replace(/\s+/g, ' ');
-    if(!name) { alert('Ilagay ang pangalan.'); return; }
-    if(workers.some(w => sameName(w, name))) { alert('Nandoon na ang pangalang ' + name + '.'); return; }
+    if(!name) { alertMsg('Ilagay ang pangalan.'); return; }
+    if(workers.some(w => sameName(w, name))) { alertMsg('Nandoon na ang pangalang ' + name + '.'); return; }
     workers.push(name); workers.sort((a, b) => a.localeCompare(b)); saveWorkers();
     inp.value = ''; fillWorkerSelects(); renderWorkersPage(); notify('Naidagdag si ' + name + '.');
 }
@@ -1429,7 +1543,7 @@ function renameWorker(i) {
     if(nn === null) return;
     nn = nn.trim().replace(/\s+/g, ' ');
     if(!nn || nn === old) return;
-    if(workers.some((w, j) => j !== i && sameName(w, nn))) { alert('Nandoon na ang pangalang ' + nn + '.'); return; }
+    if(workers.some((w, j) => j !== i && sameName(w, nn))) { alertMsg('Nandoon na ang pangalang ' + nn + '.'); return; }
     Object.values(data).forEach(arr => (arr || []).forEach(x => WORKER_FIELDS().forEach(f => { if(sameName(x[f], old)) x[f] = nn; })));
     Object.values(shutdowns).forEach(arr => (arr || []).forEach(d => (d.assignments || []).forEach(a => { if(sameName(a.worker, old)) a.worker = nn; })));
     pos.forEach(p => { if(sameName(p.worker, old)) p.worker = nn; });
@@ -1438,10 +1552,10 @@ function renameWorker(i) {
     fillWorkerSelects(); renderWorkersPage(); renderAllLineLists(); renderShutdownSummary(); updateDashboard();
     notify('Napalitan: ' + old + ' → ' + nn);
 }
-function deleteWorker(i) {
+async function deleteWorker(i) {
     const n = workers[i], u = workerUsage(n);
-    if(u.total) { alert('Hindi mabubura si ' + n + ' dahil ginagamit pa siya sa ' + u.steps + ' hakbang, ' + u.sd + ' shutdown, at ' + u.po + ' PO.\nPalitan muna ang pangalan sa mga iyon, o gamitin ang ✏️ Rename.'); return; }
-    if(!confirm('Burahin si ' + n + ' sa listahan?')) return;
+    if(u.total) { alertMsg('Hindi mabubura si ' + n + ' dahil ginagamit pa siya sa ' + u.steps + ' hakbang, ' + u.sd + ' shutdown, at ' + u.po + ' PO.\nPalitan muna ang pangalan sa mga iyon, o gamitin ang ✏️ Rename.'); return; }
+    if(!await askOk('Burahin si ' + n + ' sa listahan?')) return;
     workers.splice(i, 1); saveWorkers(); fillWorkerSelects(); renderWorkersPage(); notify('Nabura si ' + n + '.');
 }
 function gsOpen() {
@@ -1504,36 +1618,68 @@ function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 // === ADD NEW LINE ===
+let addingLine = false;
 function addNewLine() {
+    if(addingLine) return;
     const name = document.getElementById('new-line-name').value.trim();
     const total = parseInt(document.getElementById('new-line-total').value) || 0;
-    
-    if(!name) { alert('Ilagay ang pangalan ng project site!'); return; }
-    
-    const id = 'line_' + Date.now();
-    lines.push({ id, name, totalStructures: total, totalShutdowns: parseInt(document.getElementById('new-line-shutdowns').value) || 0 });
-    if(!data[id]) data[id] = [];
-    if(!shutdowns[id]) shutdowns[id] = [];
-    
-    saveLines();
-    saveAllData();
-    buildDynamicSections();
-    
-    document.getElementById('new-line-name').value = '';
-    document.getElementById('new-line-total').value = '';
-    document.getElementById('new-line-shutdowns').value = '';
-    alert('✅ Naidagdag ang bagong project site!');
-}
-
-// === DELETE LINE ===
-function deleteLine(lineId) {
-    if(confirm('⚠️ SIGURADO KA BA? Buburahin nito ang buong project site at lahat ng data dito.\nI-click ang OK para magpatuloy.')) {
-        lines = lines.filter(l => l.id !== lineId);
-        delete data[lineId];
+    if(!name) { alertMsg('Ilagay ang pangalan ng project site.'); return; }
+    const dup = lines.some(l => String(l.name).trim().toLowerCase() === name.toLowerCase());
+    if(dup) { alertMsg('May project site na po na "' + name + '". Gumamit ng ibang pangalan.'); return; }
+    addingLine = true;
+    try {
+        const id = 'line_' + Date.now();
+        lines.push({ id, name, totalStructures: total, totalShutdowns: parseInt(document.getElementById('new-line-shutdowns').value) || 0 });
+        if(!data[id]) data[id] = [];
+        if(!shutdowns[id]) shutdowns[id] = [];
         saveLines();
         saveAllData();
         buildDynamicSections();
+        renderLinesHub();
+        renderLinesList();
+        renderLinesNav();
+        document.getElementById('new-line-name').value = '';
+        document.getElementById('new-line-total').value = '';
+        document.getElementById('new-line-shutdowns').value = '';
+        alertMsg('✅ Naidagdag ang project site: ' + name);
+    } finally {
+        setTimeout(() => { addingLine = false; }, 800);
     }
+}
+// Bubukas ang page ng site. Kung wala pa ang page, bubuuin muna.
+function openLine(id) {
+    if(!document.getElementById(id)) buildDynamicSections();
+    showTab(id);
+}
+
+// === DELETE LINE ===
+async function deleteLine(lineId) {
+    const site = lines.find(l => l.id === lineId);
+    if(!site) return;
+    if(!await askOk('⚠️ SIGURADO KA BA? Buburahin nito ang project site na "' + site.name + '" at lahat ng data dito.\nI-click ang OK para magpatuloy.')) return;
+    try {
+        lines = lines.filter(l => l.id !== lineId);
+        delete data[lineId];
+        delete shutdowns[lineId];
+        saveLines();
+        saveAllData();
+        saveShutdowns();
+        buildDynamicSections();
+        renderLinesHub();
+        renderLinesList();
+        renderLinesNav();
+        updateDashboard();
+        showTab('linesHub');
+        notify('Nabura ang project site: ' + site.name);
+    } catch(e) {
+        console.error('[delete site]', e);
+        alertMsg('May error habang binubura ang site. Subukang i-refresh ang page.');
+    }
+}
+
+// Target Poles ay awtomatikong bilang ng lahat ng poste ng mga structure sa site
+function targetPolesOf(lineId) {
+    return (data[lineId] || []).reduce((a, i) => a + (parseInt(i.poles) || 0), 0);
 }
 
 // === RENDER LINES IN NAV ===
@@ -1549,10 +1695,10 @@ function renderLinesHub() {
     box.innerHTML = lines.map(line => {
         const items = data[line.id] || [];
         const cleared = items.filter(isCleared).length;
-        const pct = line.totalStructures ? Math.min(100, Math.round(items.filter(isWorkFinished).reduce((a, i) => a + (parseInt(i.poles) || 0), 0) / line.totalStructures * 100)) : 0;
-        return '<button type="button" class="hub-item" onclick="showTab(\'' + line.id + '\')">' +
+        const pct = targetPolesOf(line.id) ? Math.min(100, Math.round(items.filter(isWorkFinished).reduce((a, i) => a + (parseInt(i.poles) || 0), 0) / targetPolesOf(line.id) * 100)) : 0;
+        return '<button type="button" class="hub-item" onclick="openLine(\'' + line.id + '\')">' +
           '<strong>📍 ' + escapeHtml(line.name) + '</strong>' +
-          '<span>Structures: ' + items.length + ' &nbsp;|&nbsp; Target Poles: ' + line.totalStructures + ' &nbsp;|&nbsp; Completed: ' + cleared + '</span>' +
+          '<span>Structures: ' + items.length + ' &nbsp;|&nbsp; Target Poles: ' + targetPolesOf(line.id) + ' &nbsp;|&nbsp; Completed: ' + cleared + '</span>' +
           '<span class="hub-bar"><i style="width:' + pct + '%"></i></span></button>';
     }).join('');
 }
@@ -1571,7 +1717,7 @@ function renderLinesList() {
         html += `
         <div class="card">
             <h3>${line.name}</h3>
-            <p>Target Poles: ${line.totalStructures} | Structures: ${items.length} | Shutdown: ${(shutdowns[line.id] || []).length}${line.totalShutdowns ? ' / ' + line.totalShutdowns : ''}</p>
+            <p>Target Poles: ${targetPolesOf(line.id)} | Structures: ${items.length} | Shutdown: ${(shutdowns[line.id] || []).length}${line.totalShutdowns ? ' / ' + line.totalShutdowns : ''}</p>
             <button class="danger" onclick="deleteLine('${line.id}')">🗑️ Delete Project Site</button>
         </div>`;
     });
@@ -1689,12 +1835,12 @@ function clearForm(lineId) {
 }
 
 // === CANCEL EDIT ===
-function cancelEdit(lineId) {
+async function cancelEdit(lineId) {
     clearForm(lineId);
 }
 
 // === EDIT STRUCTURE ===
-function editStructure(lineId, id) {
+async function editStructure(lineId, id) {
     const item = data[lineId].find(x => x.id === id);
     if(!item) return;
     editingId = id;
@@ -1710,27 +1856,27 @@ function editStructure(lineId, id) {
 }
 
 // === SAVE STRUCTURE (numero, dating numero, type lang) ===
-function saveStructure(lineId) {
+async function saveStructure(lineId) {
     const prefix = lineId + '-';
     const no = document.getElementById(prefix + 'struct-no').value.trim();
     const oldNo = document.getElementById(prefix + 'old-no').value.trim();
     const type = document.getElementById(prefix + 'struct-type').value;
-    if(!no || !type) { alert('Ilagay ang Bagong Structure No. at Uri!'); return; }
+    if(!no || !type) { alertMsg('Ilagay ang Bagong Structure No. at Uri!'); return; }
     if(!data[lineId]) data[lineId] = [];
     const arr = data[lineId];
     const existing = editingId ? arr.find(x => x.id === editingId) : null;
     const dupe = arr.find(x => x !== existing && String(x.no).trim().toLowerCase() === no.toLowerCase() && x.type === type);
-    if(dupe) { alert('Hindi tinanggap: mayroon nang Structure ' + no + ' (Type ' + type + ') sa project site na ito.'); return; }
+    if(dupe) { alertMsg('Hindi tinanggap: mayroon nang Structure ' + no + ' (Type ' + type + ') sa project site na ito.'); return; }
 
     if(existing) {
         if(oldNo && oldNo !== no) {
-            if(!confirm('⚠️ BINAGO ANG STRUCTURE NUMBER:\nDati: ' + oldNo + '\nNgayon: ' + no + '\n\nLalabas ito na may markang "🔁 CHANGED".\nI-click ang OK para magpatuloy.')) return;
-        } else if(!confirm('⚠️ SIGURADO KA BA? I-a-update ang impormasyon ng structure na ito.\nI-click ang OK para magpatuloy.')) return;
+            if(!await askOk('⚠️ BINAGO ANG STRUCTURE NUMBER:\nDati: ' + oldNo + '\nNgayon: ' + no + '\n\nLalabas ito na may markang "🔁 CHANGED".\nI-click ang OK para magpatuloy.')) return;
+        } else if(!await askOk('⚠️ SIGURADO KA BA? I-a-update ang impormasyon ng structure na ito.\nI-click ang OK para magpatuloy.')) return;
         Object.assign(existing, { no, oldNo, type });
         notify('Nai-update na ang structure.');
     } else {
         if(oldNo) {
-            if(!confirm('⚠️ LUMANG NUMERO NA ILALAGAY:\nDati: ' + oldNo + '\nBago: ' + no + '\n\nLalabas ito na may markang "🔁 CHANGED".\nI-click ang OK para magpatuloy.')) return;
+            if(!await askOk('⚠️ LUMANG NUMERO NA ILALAGAY:\nDati: ' + oldNo + '\nBago: ' + no + '\n\nLalabas ito na may markang "🔁 CHANGED".\nI-click ang OK para magpatuloy.')) return;
         }
         arr.push({ id: Date.now(), no, oldNo, type, poles: getDefaultPoles(type) || 1, remarks: '' });
         notify('Naidagdag na ang structure. Pumunta sa 🪜 Mga Hakbang para sa mga petsa.');
@@ -1914,13 +2060,13 @@ function fillFromRetrieval(item) {
 }
 function saveSteps() {
     const { items } = stepsSelected();
-    if(!items.length) { alert('Pumili muna ng structure.'); return; }
+    if(!items.length) { alertMsg('Pumili muna ng structure.'); return; }
     const v = id => document.getElementById(id).value;
     const pairs = [['Alpha', 'st-trans-alpha'], ['Bravo', 'st-trans-bravo'], ['Charlie', 'st-trans-charlie']];
     for(const [name, id] of pairs) {
         const ck = document.getElementById(id).checked, dt = v(id + '-date');
-        if(ck && !dt) { alert('Pumili ng petsa para sa ' + name + '.'); return; }
-        if(dt && !ck) { alert('I-check ang ' + name + ' dahil may inilagay kang petsa.'); return; }
+        if(ck && !dt) { alertMsg('Pumili ng petsa para sa ' + name + '.'); return; }
+        if(dt && !ck) { alertMsg('I-check ang ' + name + ' dahil may inilagay kang petsa.'); return; }
     }
     const multi = items.length > 1;
     const q = v('st-anchor-qty');
@@ -1975,8 +2121,8 @@ function saveSteps() {
 }
 
 // === DELETE STRUCTURE ===
-function deleteStructure(lineId, id) {
-    if(confirm('⚠️ SIGURADO KA BA? Buburahin na nang tuluyan ang structure na ito.\nHindi na ito mababawi.\nI-click ang OK para magpatuloy.')) {
+async function deleteStructure(lineId, id) {
+    if(await askOk('⚠️ SIGURADO KA BA? Buburahin na nang tuluyan ang structure na ito.\nHindi na ito mababawi.\nI-click ang OK para magpatuloy.')) {
         data[lineId] = data[lineId].filter(x => x.id !== id);
         saveAllData();
         renderAllLineLists();
@@ -2156,7 +2302,8 @@ function updateDashboard() {
         const sdPlanned = parseInt(line.totalShutdowns) || 0;
         gStructs += items.length; gPoles += polesPlaced; gCleared += cleared; gClearedPoles += clearedPoles;
 
-        const pct = line.totalStructures ? Math.min(100, Math.round(polesPlaced / line.totalStructures * 100)) : 0;
+        const tgt = targetPolesOf(line.id);
+        const pct = tgt ? Math.min(100, Math.round(clearedPoles / tgt * 100)) : 0;
         const newCleared = dashTrack(line.id, 'cleared', cleared);
         const newErected = dashTrack(line.id, 'erected', erected);
 
@@ -2251,95 +2398,6 @@ mergeSameDateShutdowns();
 syncWorkers();
 fillWorkerSelects();
 renderPrices();
-
-// === SHARED DATABASE (Firebase Firestore) ===
-const FB_CONFIG = {
-  apiKey: "AIzaSyAeMdRt_L0wV6ivtZzo2eCgWtaIwkQaHhM",
-  authDomain: "rehab-po.firebaseapp.com",
-  projectId: "rehab-po",
-  storageBucket: "rehab-po.firebasestorage.app",
-  messagingSenderId: "862993855886",
-  appId: "1:862993855886:web:803bbb22f09819da8ba0df"
-};
-const CLOUD = { ok: false, on: false, auth: null, ref: null, timer: null };
-function cloudInit() {
-  try {
-    if (typeof firebase === 'undefined') return;
-    if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
-    CLOUD.auth = firebase.auth();
-    CLOUD.ref = firebase.firestore().collection('tracker').doc('main');
-    CLOUD.ok = true;
-  } catch(e) { console.error('[cloud init]', e); }
-}
-function cloudCollect() {
-  const out = {};
-  for(let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if(k && k.startsWith('proj_')) out[k] = localStorage.getItem(k);
-  }
-  return out;
-}
-function cloudPush() {
-  if(!CLOUD.ok || !CLOUD.on) return;
-  clearTimeout(CLOUD.timer);
-  CLOUD.timer = setTimeout(() => {
-    CLOUD.ref.set({ data: cloudCollect(), updated: new Date().toISOString() })
-      .catch(e => console.error('[cloud push]', e));
-  }, 400);
-}
-async function cloudPull() {
-  if(!CLOUD.ok || !CLOUD.on) return false;
-  try {
-    const snap = await CLOUD.ref.get();
-    if(!snap.exists) return false;
-    const d = (snap.data() || {}).data || {};
-    Object.keys(d).forEach(k => localStorage.setItem(k, d[k]));
-    return true;
-  } catch(e) { console.error('[cloud pull]', e); return false; }
-}
-function cloudShowStatus(email) {
-  const b = document.getElementById('cloud-btn');
-  if(!b) return;
-  b.style.display = '';
-  if(!CLOUD.ok) { b.textContent = '⚠️ Login hindi available'; b.onclick = () => alert('Hindi ma-load ang Firebase. Suriin ang internet at subukang i-refresh ang page.'); return; }
-  if(email) { b.textContent = '☁️ ' + email + ' · Mag-logout'; b.onclick = cloudLogout; }
-  else { b.textContent = '🔐 Mag-login'; b.onclick = cloudLogin; }
-}
-function cloudLogin() {
-  if(CLOUD.ok) CLOUD.auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
-}
-function cloudLogout() {
-  if(CLOUD.ok) CLOUD.auth.signOut().then(() => location.reload());
-}
-function cloudWatchAuth() {
-  if(!CLOUD.ok) { cloudShowStatus(null); return; }
-  CLOUD.auth.onAuthStateChanged(async user => {
-    if(!user) { CLOUD.on = false; cloudShowStatus(null); return; }
-    CLOUD.on = true;
-    cloudShowStatus(user.email);
-    const before = JSON.stringify(cloudCollect());
-    const localN = cloudCount(localStorage.getItem('proj_data'));
-    let remoteN = -1;
-    try {
-      const snap = await CLOUD.ref.get();
-      if(snap.exists) remoteN = cloudCount(((snap.data() || {}).data || {})['proj_data']);
-    } catch(e) { console.error('[cloud check]', e); return; }
-    // Kung mas kumpleto ang nasa device kaysa sa cloud, ipapadala ang device papuntang cloud. Hindi binubura ang device.
-    if(remoteN < 0 || localN > remoteN) { cloudPush(); return; }
-    const pulled = await cloudPull();
-    if(pulled && JSON.stringify(cloudCollect()) !== before) location.reload();
-  });
-}
-function cloudCount(raw) {
-  try {
-    const obj = JSON.parse(raw || '{}') || {};
-    return Object.values(obj).reduce((a, v) => a + (Array.isArray(v) ? v.length : 0), 0);
-  } catch(e) { return 0; }
-}
-function lsSet(k, v) {
-  localStorage.setItem(k, v);
-  if(String(k).startsWith('proj_')) cloudPush();
-}
 
 // === START ===
 async function startApp() {

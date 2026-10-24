@@ -1051,6 +1051,8 @@ function addShutdownGlobal() {
     notify(merged ? 'Pinagsama sa shutdown na may parehong petsa. Isang shutdown lang ang bilang.' : wasEdit ? 'Na-update ang shutdown.' : 'Na-save ang shutdown.');
 }
 let pos = JSON.parse(localStorage.getItem('proj_pos') || '[]');
+let trips = JSON.parse(localStorage.getItem('proj_trips') || '{}') || {};
+function saveTrips() { lsSet('proj_trips', JSON.stringify(trips)); }
 let poEditId = null;
 function savePOs() { lsSet('proj_pos', JSON.stringify(pos)); }
 const STAGE_BY = [['Roadside','roadsideBy'],['Excavation','excavationBy'],['Dragging','draggingBy'],['Erection','erectionBy'],['Anchor/Lag','anchorBy'],['Transfer','transferBy'],['Transfer Alpha','transferAlphaBy'],['Transfer Bravo','transferBravoBy'],['Transfer Charlie','transferCharlieBy'],['Retrieve','retrievalBy']];
@@ -1090,6 +1092,102 @@ function stepPrice(item, d) {
 function stepName(item, d) { return String(item[d.by] || (d.legacy ? item[d.legacy] : '') || '').trim(); }
 function workerSteps(item, worker) { return STEP_DEFS.filter(d => sameName(stepName(item, d), worker) && d.done(item)); }
 let poSel = new Set();
+// ----- Roadside biyahe: pumipili ng structure at dami ng poste sa bawat biyahe -----
+function tripBilled(tid, exceptPoId) {
+    return pos.some(p => p.id !== exceptPoId && (p.items || []).some(i => (i.steps || []).includes('trip:' + tid)));
+}
+function tripDeliveredFor(lineId, structId, exceptTripId) {
+    let n = 0;
+    (trips[lineId] || []).forEach(t => {
+        if(t.id === exceptTripId) return;
+        (t.items || []).forEach(i => { if(String(i.structId) === String(structId)) n += parseInt(i.poles, 10) || 0; });
+    });
+    return n;
+}
+function structRemaining(lineId, st) {
+    return Math.max(0, (parseInt(st.poles, 10) || 0) - tripDeliveredFor(lineId, st.id));
+}
+// Kapag kumpleto na ang poste ng structure sa mga biyahe, mamarkahang delivered ang roadside nito
+function syncStructRoadside(lineId, structId) {
+    const st = (data[lineId] || []).find(x => String(x.id) === String(structId));
+    if(!st || st.roadsidePoles) return;
+    const total = parseInt(st.poles, 10) || 0;
+    const done = tripDeliveredFor(lineId, st.id);
+    let latest = '';
+    (trips[lineId] || []).forEach(t => {
+        if((t.items || []).some(i => String(i.structId) === String(st.id)) && t.date > latest) latest = t.date;
+    });
+    st.roadsideDate = (total > 0 && done >= total) ? latest : '';
+}
+function renderTripForm(lineId) {
+    const box = document.getElementById(lineId + '-trip-structs');
+    if(!box) return;
+    fillWorkerSelects();
+    const list = (data[lineId] || []).slice().sort((x, y) => String(x.no).localeCompare(String(y.no), undefined, { numeric: true }));
+    if(!list.length) { box.innerHTML = '<p class="small-note">Wala pang structure sa site na ito.</p>'; return; }
+    box.innerHTML = '<div class="table-wrapper"><table class="tight"><thead><tr><th>Structure</th><th>Type</th><th class="r">Poste</th><th class="r">Nakarga na</th><th class="r">Natitira</th><th>Ngayong biyahe</th></tr></thead><tbody>' +
+        list.map(st => {
+            const rem = structRemaining(lineId, st);
+            return '<tr><td><strong>' + escapeHtml(st.no) + '</strong></td><td>' + escapeHtml(st.type) + '</td><td class="r">' + (parseInt(st.poles, 10) || 0) +
+                '</td><td class="r">' + tripDeliveredFor(lineId, st.id) + '</td><td class="r">' + rem + '</td><td>' +
+                '<input type="number" min="0" max="' + rem + '" step="1" placeholder="0" id="' + lineId + '-tp-' + st.id + '" style="width:90px"></td></tr>';
+        }).join('') + '</tbody></table></div>';
+}
+function addTrip(lineId) {
+    const date = document.getElementById(lineId + '-trip-date').value;
+    const by = document.getElementById(lineId + '-trip-by').value.trim();
+    const price = parseFloat(document.getElementById(lineId + '-trip-price').value) || 0;
+    if(!date) { alertMsg('Ilagay ang petsa ng biyahe.'); return; }
+    if(!by) { alertMsg('Pumili ng gumawa.'); return; }
+    if(price <= 0) { alertMsg('Ilagay ang presyo ng biyahe.'); return; }
+    const items = [];
+    let bad = '';
+    (data[lineId] || []).forEach(st => {
+        const inp = document.getElementById(lineId + '-tp-' + st.id);
+        const n = parseInt(inp ? inp.value : '', 10) || 0;
+        if(n <= 0) return;
+        const rem = structRemaining(lineId, st);
+        if(n > rem) { bad = 'Lumampas ang ' + st.no + ': natitira ' + rem + ' poste lang.'; return; }
+        items.push({ structId: st.id, no: st.no, poles: n });
+    });
+    if(bad) { alertMsg(bad); return; }
+    if(!items.length) { alertMsg('Maglagay ng dami ng poste sa kahit isang structure.'); return; }
+    const total = items.reduce((t, i) => t + i.poles, 0);
+    (trips[lineId] = trips[lineId] || []).push({ id: 't' + Date.now(), date, by, price, items, poles: total });
+    items.forEach(i => syncStructRoadside(lineId, i.structId));
+    saveTrips();
+    saveAllData();
+    renderTrips(lineId);
+    renderTripForm(lineId);
+    document.getElementById(lineId + '-trip-price').value = '';
+    alertMsg('✅ Naidagdag ang biyahe.');
+}
+async function delTrip(lineId, tid) {
+    if(tripBilled(tid)) { alertMsg('Nasingil na sa PO ang biyaheng ito. Hindi na mabubura.'); return; }
+    if(!(await askOk('Burahin ang biyaheng ito?'))) return;
+    const t = (trips[lineId] || []).find(x => x.id === tid);
+    trips[lineId] = (trips[lineId] || []).filter(x => x.id !== tid);
+    if(t) (t.items || []).forEach(i => syncStructRoadside(lineId, i.structId));
+    saveTrips();
+    saveAllData();
+    renderTrips(lineId);
+    renderTripForm(lineId);
+}
+function renderTrips(lineId) {
+    const box = document.getElementById(lineId + '-trips');
+    if(!box) return;
+    const list = trips[lineId] || [];
+    if(!list.length) { box.innerHTML = '<p class="small-note">Wala pang biyahe.</p>'; return; }
+    box.innerHTML = '<div class="table-wrapper"><table class="tight"><thead><tr><th>Petsa</th><th>Gumawa</th><th>Structure (poste)</th><th class="r">Presyo</th><th>Status</th><th></th></tr></thead><tbody>' +
+        list.map(t => {
+            const billed = tripBilled(t.id);
+            const nos = (t.items || []).map(i => escapeHtml(i.no) + ' (' + i.poles + ')').join(', ') || (t.poles + ' poste');
+            return '<tr><td>' + fmtDate(t.date) + '</td><td>' + escapeHtml(t.by) + '</td><td>' + nos + '</td><td class="r">' + peso(t.price) + '</td><td>' +
+                (billed ? '✅ Nasingil na' : '⏳ Hindi pa') + '</td><td>' +
+                (billed ? '' : '<button type="button" class="danger btn-sm" onclick="delTrip(\'' + lineId + '\', \'' + t.id + '\')">🗑️</button>') + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+}
+
 function poBilled(worker) {
     const billed = {};
     pos.filter(x => x.id !== poEditId && sameName(x.worker, worker)).forEach(x => x.items.forEach(i => {
@@ -1141,6 +1239,14 @@ function poCalc() {
         if(!info.avail.length) return;
         out.push({ lineId, structId: item.id, steps: info.avail.map(d => d.k), details: info.details, amount: info.amt });
     });
+    Object.keys(trips).forEach(lineId => (trips[lineId] || []).forEach(t => {
+        if(!sameName(t.by, worker) || tripBilled(t.id, poEditId)) return;
+        out.push({
+            lineId, structId: null, steps: ['trip:' + t.id],
+            details: [{ k: 'trip:' + t.id, base: 'trip', l: 'Roadside biyahe', price: t.price }],
+            amount: t.price, tripId: t.id, tripDate: t.date, tripBy: t.by, tripPoles: t.poles, tripNos: (t.items || []).map(i => i.no + ' (' + i.poles + ')').join(', ')
+        });
+    }));
     return out;
 }
 function poUpdateTotal() {
@@ -1261,6 +1367,7 @@ function summarizeSteps(details) {
     const groups = [], idx = {};
     details.forEach(d => {
         const base = String(d.k || '').split(':')[0];
+        if(base === 'roadside') return; // Roadside ay nasa buod sa ibaba ng bawat site
         let key, label;
         if(base === 'erection') { key = 'erection'; label = 'Erection'; }
         else if(base === 'excavation') { key = 'excavation'; label = 'Excavation'; }
@@ -1288,14 +1395,36 @@ function poDocHtml(po, draft) {
     });
     let body = '';
     Object.keys(sites).forEach(name => {
-        let sub = 0;
+        let sub = 0, rsPoles = 0, rsAmt = 0;
         body += '<h4>📍 ' + escapeHtml(name) + '</h4><table><thead><tr><th>Structure</th><th>Type</th><th>Steps</th><th class="r">Amount</th></tr></thead><tbody>';
         sites[name].sort((a, b) => String(a.st.no).localeCompare(String(b.st.no), undefined, { numeric: true })).forEach(({ st, it }) => {
-            sub += it.amount || 0;
+            const rs = (it.details || []).filter(d => String(d.k || '').split(':')[0] === 'roadside');
+            const rsA = rs.reduce((t, d) => t + (parseFloat(d.price) || 0), 0);
+            const rowAmt = (it.amount || 0) - rsA;
+            rsPoles += rs.length; rsAmt += rsA;
+            sub += rowAmt;
             const steps = summarizeSteps(it.details);
-            body += '<tr><td><strong>' + escapeHtml(st.no) + '</strong></td><td>' + escapeHtml(st.type) + '</td><td>' + steps + '</td><td class="r">' + peso(it.amount) + '</td></tr>';
+            body += '<tr><td><strong>' + escapeHtml(st.no) + '</strong></td><td>' + escapeHtml(st.type) + '</td><td>' + steps + '</td><td class="r">' + peso(rowAmt) + '</td></tr>';
         });
+        if(rsPoles) {
+            const rate = rsAmt / rsPoles;
+            body += '<tr><td colspan="2"><strong>Roadside</strong></td><td>' + rsPoles + ' poste × ' + peso(rate) + '</td><td class="r">' + peso(rsAmt) + '</td></tr>';
+        }
+        sub += rsAmt;
         body += '<tr class="sub"><td colspan="3" class="r">Subtotal — ' + escapeHtml(name) + '</td><td class="r">' + peso(sub) + '</td></tr></tbody></table>';
+    });
+    const tripSites = {};
+    po.items.forEach(it => {
+        if(!it.tripId) return;
+        const line = lines.find(l => l.id === it.lineId);
+        const nm = line ? line.name : '-';
+        (tripSites[nm] = tripSites[nm] || []).push(it);
+    });
+    Object.keys(tripSites).forEach(name => {
+        let t = 0;
+        body += '<h4>🚚 ' + escapeHtml(name) + ' — Roadside biyahe</h4><table><thead><tr><th>Date</th><th>Contractor</th><th>Poles</th><th class="r">Amount</th></tr></thead><tbody>' +
+            tripSites[name].map(it => { t += it.amount || 0; return '<tr><td>' + fmtDate(it.tripDate) + '</td><td>' + escapeHtml(it.tripBy) + '</td><td>' + it.tripPoles + (it.tripNos ? '<br><small>' + escapeHtml(it.tripNos) + '</small>' : '') + '</td><td class="r">' + peso(it.amount) + '</td></tr>'; }).join('') +
+            '<tr class="sub"><td colspan="3" class="r">Subtotal — ' + escapeHtml(name) + ' (biyahe)</td><td class="r">' + peso(t) + '</td></tr></tbody></table>';
     });
     return '<div class="po-head"><div><h1>PURCHASE ORDER</h1><small>69kV Rehab Project</small></div>' +
       '<table class="po-meta"><tr><td>PO No.</td><td>:</td><td class="v po-red">' + escapeHtml(po.poNo || '—') + '</td></tr>' +
@@ -1798,6 +1927,8 @@ function addNewLine() {
 function openLine(id) {
     if(!document.getElementById(id)) buildDynamicSections();
     showTab(id);
+    renderTripForm(id);
+    renderTrips(id);
 }
 
 // === DELETE LINE ===
@@ -1978,6 +2109,20 @@ function buildDynamicSections() {
                 </div>
             </div>
             
+            <div class="card" style="margin-top:14px">
+                <h3>🚚 Roadside — Biyahe</h3>
+                <p class="small-note">Ilagay ang petsa, gumawa, at presyo ng biyahe. Sa listahan ng structure, ilagay ang dami ng poste na nakarga sa biyaheng ito.</p>
+                <div class="grid">
+                    <div><label>Petsa ng biyahe</label><input type="date" id="${line.id}-trip-date"></div>
+                    <div><label>Gumawa</label><select class="worker-sel" id="${line.id}-trip-by"></select></div>
+                    <div><label>Presyo ng biyahe (₱)</label><input type="number" id="${line.id}-trip-price" min="0" step="any" placeholder="0.00"></div>
+                </div>
+                <div id="${line.id}-trip-structs" style="margin-top:12px"></div>
+                <button type="button" class="primary" style="margin-top:10px" onclick="addTrip('${line.id}')">➕ Idagdag ang biyahe</button>
+                <h3 style="margin-top:16px">Listahan ng biyahe</h3>
+                <div id="${line.id}-trips"></div>
+            </div>
+
             <h3>📋 Structure List</h3>
             <p class="small-note">👉 I-scroll pakanan para makita ang lahat → | 🔁 = Napalitan ang numero/lokasyon</p>
             <div class="table-wrapper" id="${line.id}-list"></div>
@@ -2589,6 +2734,7 @@ safeRun('lines', renderLinesList);
 safeRun('dedupe', dedupeLines);
 safeRun('sections', buildDynamicSections);
 safeRun('views', newBumpViews);
+safeRun('trips', () => lines.forEach(l => { renderTripForm(l.id); renderTrips(l.id); }));
 safeRun('dashboard', updateDashboard);
 try { const t = sessionStorage.getItem('proj_tab'); if(t && t !== 'dashboard' && document.getElementById(t)) showTab(t); } catch(e) {}
 }

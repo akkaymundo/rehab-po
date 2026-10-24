@@ -604,21 +604,23 @@ const FB_CONFIG = {
   messagingSenderId: "862993855886",
   appId: "1:862993855886:web:803bbb22f09819da8ba0df"
 };
-const CLOUD = { ok: false, on: false, synced: false, auth: null, ref: null, timer: null };
+const CLOUD = { ok: false, on: false, synced: false, auth: null, ref: null, timer: null, gateTimer: null };
 function cloudInit() {
   try {
     if (typeof firebase === 'undefined') return;
     if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
     CLOUD.auth = firebase.auth();
+    try { CLOUD.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch(e) {}
     CLOUD.ref = firebase.firestore().collection('tracker').doc('main');
     CLOUD.ok = true;
   } catch(e) { console.error('[cloud init]', e); }
 }
+const LOCAL_ONLY = ['proj_new_v1', 'proj_dash_seen_v1', 'proj_str_status_v1', 'proj_tab'];
 function cloudCollect() {
   const out = {};
   for(let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if(k && k.startsWith('proj_')) out[k] = localStorage.getItem(k);
+    if(k && k.startsWith('proj_') && !LOCAL_ONLY.includes(k)) out[k] = localStorage.getItem(k);
   }
   return out;
 }
@@ -636,7 +638,7 @@ async function cloudPull() {
     const snap = await CLOUD.ref.get();
     if(!snap.exists) return false;
     const d = (snap.data() || {}).data || {};
-    Object.keys(d).forEach(k => localStorage.setItem(k, d[k]));
+    Object.keys(d).forEach(k => { if(!LOCAL_ONLY.includes(k)) localStorage.setItem(k, d[k]); });
     return true;
   } catch(e) { console.error('[cloud pull]', e); return false; }
 }
@@ -757,7 +759,13 @@ function cloudLogout() {
 function cloudWatchAuth() {
   if(!CLOUD.ok) { cloudShowStatus(null); cloudGate(true, 'Hindi ma-load ang login. I-check ang internet at i-refresh ang page.'); return; }
   CLOUD.auth.onAuthStateChanged(async user => {
-    if(!user) { CLOUD.on = false; cloudShowStatus(null); cloudGate(true); return; }
+    if(!user) {
+      CLOUD.on = false; cloudShowStatus(null);
+      clearTimeout(CLOUD.gateTimer);
+      CLOUD.gateTimer = setTimeout(() => { if(!CLOUD.auth.currentUser) cloudGate(true); }, 1500);
+      return;
+    }
+    clearTimeout(CLOUD.gateTimer);
     CLOUD.on = true;
     cloudGate(false);
     cloudShowStatus(user.email);

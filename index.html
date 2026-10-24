@@ -2528,6 +2528,7 @@ function toggleMenu() { document.body.classList.contains('menu-open') ? closeMen
 document.addEventListener('keydown', function(e) { if(e.key === 'Escape') closeMenu(); });
 document.getElementById('main-nav').addEventListener('click', function(e) { if(e.target.closest('button[onclick*="showTab"]')) closeMenu(); });
 function showTab(id) {
+    try { sessionStorage.setItem('proj_tab', id); } catch(e) {}
     document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
     const section = document.getElementById(id);
@@ -2581,6 +2582,7 @@ safeRun('dedupe', dedupeLines);
 safeRun('sections', buildDynamicSections);
 safeRun('views', newBumpViews);
 safeRun('dashboard', updateDashboard);
+try { const t = sessionStorage.getItem('proj_tab'); if(t && t !== 'dashboard' && document.getElementById(t)) showTab(t); } catch(e) {}
 }
 startApp();
 </script>

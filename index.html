@@ -285,7 +285,6 @@ header,header.appbar{
   box-shadow:0 2px 10px rgba(11,46,79,.25);
 }
 nav button.active,nav#main-nav button.active{background:#f26a00 !important;border-color:#f26a00 !important;color:#fff !important}
-nav#main-nav button:hover{background:rgba(255,138,0,.18) !important}
 button.primary{background:linear-gradient(90deg,#ff9a1f,#f26a00) !important;color:#fff !important;border:0 !important;box-shadow:0 4px 12px rgba(242,106,0,.30) !important}
 button.primary:hover{filter:brightness(1.05)}
 button.secondary{border-color:#cbd5e1 !important}
@@ -762,7 +761,7 @@ function cloudGate(show, note) {
   if(!g) {
     g = document.createElement('div');
     g.id = 'login-gate';
-    g.style.cssText = 'position:fixed;inset:0;z-index:4000;overflow:auto;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;' +
+    g.style.cssText = 'position:fixed;inset:0;z-index:99999;overflow:auto;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;' +
       'background:radial-gradient(circle at 15% 10%,#1b4d7a 0%,#0c2238 50%,#050e1a 100%)';
     document.body.appendChild(g);
   }
@@ -2851,8 +2850,9 @@ function openMenu() { document.body.classList.add('menu-open'); document.getElem
 function closeMenu() { document.body.classList.remove('menu-open'); document.getElementById('menu-btn').setAttribute('aria-expanded', 'false'); }
 function toggleMenu() { document.body.classList.contains('menu-open') ? closeMenu() : openMenu(); }
 document.addEventListener('keydown', function(e) { if(e.key === 'Escape') closeMenu(); });
-document.getElementById('main-nav').addEventListener('click', function(e) { if(e.target.closest('button[onclick*="showTab"]')) closeMenu(); });
+document.getElementById('main-nav').addEventListener('click', function(e) { if(e.target.closest('button')) closeMenu(); });
 function showTab(id) {
+    if(typeof closeMenu === 'function') closeMenu();
     try { sessionStorage.setItem('proj_tab', id); } catch(e) {}
     document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));

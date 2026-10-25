@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kumpirmahin ang PO</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+  body{margin:0;min-height:100vh;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#17283b;
+    background:radial-gradient(circle at 15% 10%,#1b4d7a 0%,#0c2238 50%,#050e1a 100%);padding:20px 12px;box-sizing:border-box}
+  .wrap{max-width:720px;margin:0 auto}
+  .head{color:#fff;text-align:center;margin-bottom:14px}
+  .head h1{margin:0;font-size:20px}
+  .head small{color:#cbd5e1}
+  .card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.45);border-top:4px solid #ff8a00}
+  .po-no{color:#d32f2f;font-weight:800;font-size:18px}
+  .meta{margin:8px 0 14px;font-size:14px;line-height:1.7}
+  .meta span{color:#62748a;display:inline-block;width:84px}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+  th,td{border-bottom:1px solid #e2e8f0;padding:8px 6px;text-align:left;vertical-align:top}
+  th{background:#0b2e4f;color:#fff;font-size:12px;text-transform:uppercase}
+  .r{text-align:right;white-space:nowrap}
+  .total{font-size:17px;font-weight:800;text-align:right;margin-top:12px}
+  .lbl{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#334e68;margin:16px 0 6px}
+  .inp{width:100%;box-sizing:border-box;padding:13px 14px;font-size:16px;border:1.5px solid #cbd5e1;border-radius:10px;background:#f8fafc;color:#17283b}
+  .btn{display:block;width:100%;margin-top:16px;padding:14px;font-size:16px;font-weight:700;color:#fff;border:0;border-radius:10px;background:linear-gradient(90deg,#ff9a1f,#f26a00);cursor:pointer}
+  .btn2{display:block;width:100%;margin-top:10px;padding:12px;font-size:15px;font-weight:700;color:#0b2e4f;border:1.5px solid #0b2e4f;border-radius:10px;background:#fff;cursor:pointer}
+  .ok{background:#e8f8ee;color:#0a7d3b;border-radius:10px;padding:14px;margin-top:16px;font-weight:700;text-align:center}
+  .msg{color:#d32f2f;font-size:14px;margin-top:10px;text-align:center;min-height:18px}
+  .foot{text-align:center;color:#cbd5e1;font-size:13px;margin-top:16px}
+  .foot a{color:#ffb347;font-weight:700;text-decoration:none}
+  @media print{
+    body{background:#fff;padding:0} .head,.foot,.btn,.btn2,.lbl,.inp,.msg,.noprint{display:none !important}
+    .card{box-shadow:none;border:0}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <h1>⚡ 69kV Rehab Project</h1>
+    <small>Pagkumpirma ng Purchase Order</small>
+  </div>
+  <div class="card" id="po">
+    <p style="text-align:center;color:#62748a">Naglo-load ng PO...</p>
+  </div>
+  <div class="foot">Developer: <a href="https://www.facebook.com/viernesroger10?mibextid=ZbWKwL" target="_blank" rel="noopener">uging</a></div>
+</div>
+
+<script>
+const FB_CONFIG = {
+  apiKey: "AIzaSyAeMdRt_L0wV6ivtZzo2eCgWtaIwkQaHhM",
+  authDomain: "rehab-po.firebaseapp.com",
+  projectId: "rehab-po",
+  storageBucket: "rehab-po.firebasestorage.app",
+  messagingSenderId: "862993855886",
+  appId: "1:862993855886:web:803bbb22f09819da8ba0df"
+};
+firebase.initializeApp(FB_CONFIG);
+const db = firebase.firestore();
+const token = new URLSearchParams(location.search).get('t') || '';
+const box = document.getElementById('po');
+
+function esc(x) {
+  return String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+function peso(n) {
+  return '₱' + (Number(n) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmt(d) {
+  if(!d) return '-';
+  const dt = new Date(d);
+  return isNaN(dt) ? d : dt.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: '2-digit' });
+}
+
+function show(msg) {
+  box.innerHTML = '<p style="text-align:center;color:#d32f2f">' + esc(msg) + '</p>';
+}
+
+function render(d) {
+  const rows = (d.rows || []).map(r => {
+    const steps = (r.steps || []).map(s => esc(s.l)).join(', ') || '-';
+    return '<tr><td><strong>' + esc(r.no) + '</strong><br><small>' + esc(r.site) + '</small></td>' +
+      '<td>' + esc(r.type) + '</td><td>' + steps + '</td><td class="r">' + peso(r.amount) + '</td></tr>';
+  }).join('');
+  const total = (d.rows || []).reduce((t, r) => t + (Number(r.amount) || 0), 0) || Number(d.amount) || 0;
+
+  let action = '';
+  if(d.confirmed) {
+    action = '<div class="ok">✅ Nakumpirma ni ' + esc(d.confirmedName || '-') + ' noong ' + fmt(d.confirmedAt) + '</div>';
+  } else {
+    action = '<label class="lbl" for="cname">Pangalan ng nagkumpirma</label>' +
+      '<input class="inp" id="cname" type="text" placeholder="Ilagay ang buong pangalan">' +
+      '<button class="btn" onclick="confirmPo()">✅ Kumpirmahin ang PO</button>' +
+      '<div class="msg" id="msg"></div>';
+  }
+
+  box.innerHTML =
+    '<div class="po-no">PO No. ' + esc(d.poNo) + '</div>' +
+    '<div class="meta"><div><span>Gumawa</span>' + esc(d.worker || '-') + '</div>' +
+    '<div><span>Petsa</span>' + fmt(d.date) + '</div>' +
+    (d.note ? '<div><span>Tala</span>' + esc(d.note) + '</div>' : '') + '</div>' +
+    '<table><thead><tr><th>Structure</th><th>Type</th><th>Mga hakbang</th><th class="r">Halaga</th></tr></thead><tbody>' +
+    (rows || '<tr><td colspan="4">Walang laman.</td></tr>') + '</tbody></table>' +
+    '<div class="total">Kabuuan: ' + peso(total) + '</div>' +
+    action +
+    '<button class="btn2 noprint" onclick="window.print()">📥 I-save bilang PDF</button>';
+}
+
+async function load() {
+  if(!token) return show('Walang PO na nakalagay sa link.');
+  try {
+    const snap = await db.collection('po_links').doc(token).get();
+    if(!snap.exists) return show('Hindi makita ang PO. Hingin sa nagpadala ang bagong link.');
+    render(snap.data());
+  } catch(e) {
+    show('Hindi ma-load ang PO. I-check ang internet at subukang i-refresh.');
+  }
+}
+
+async function confirmPo() {
+  const name = document.getElementById('cname').value.trim();
+  const msg = document.getElementById('msg');
+  if(!name) { msg.textContent = 'Ilagay ang pangalan bago kumpirmahin.'; return; }
+  try {
+    await db.collection('po_links').doc(token).update({
+      confirmed: true,
+      confirmedAt: new Date().toISOString(),
+      confirmedName: name
+    });
+    load();
+  } catch(e) {
+    msg.textContent = 'Hindi ma-confirm: ' + (e.code || e.message);
+  }
+}
+
+load();
+</script>
+</body>
+</html>

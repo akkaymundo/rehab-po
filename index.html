@@ -269,6 +269,11 @@ tr.flash td{animation:flashrow 2.8s ease-out}
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <style id="theme-electric">
 /* Electrical theme: colors only, layout and behavior are unchanged */
+#st-trip-card .card{overflow:hidden}
+#st-trip-card .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#st-trip-card input,#st-trip-card select{max-width:100% !important;width:100% !important;box-sizing:border-box}
+#st-trip-card .table-wrapper{overflow-x:auto;width:100%}
+@media (max-width:520px){#st-trip-card .grid{grid-template-columns:1fr}}
 :root{
   --navy:#0b2e4f; --blue:#f26a00; --blue-d:#d95d00;
   --gold:#ffb300; --bg:#eef2f6; --soft:#f5f8fb; --line:#dbe3ec;
@@ -291,6 +296,7 @@ h2:after{content:"";display:block;width:56px;height:3px;margin-top:6px;border-ra
 input:focus,select:focus,textarea:focus{outline:none;border-color:#ff8a00 !important;box-shadow:0 0 0 3px rgba(255,138,0,.20) !important}
 .ribbon{background:#f26a00 !important}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -315,6 +321,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#ff8a00 !impor
         <button onclick="showTab('linesHub')">📍 Project Sites</button>
         <button onclick="showTab('stepsPage')">🪜 Steps</button>
         <button onclick="showTab('shutdownPage')">⚡ Shutdown</button>
+        <button onclick="showTab('weekPage')">📅 Ngayong Linggo</button>
         <button onclick="showTab('poPage')">📄 PO</button>
         <button onclick="showTab('hwPage')">🔩 Line Hardware</button>
         <div class="nav-label">Pamamahala at Ulat</div>
@@ -387,6 +394,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#ff8a00 !impor
                 <div><label>Project Site</label><select id="po-site-filter" onchange="renderPOStructures()"></select></div>
                 <div style="align-self:end"><button type="button" class="secondary" onclick="poSelectAll()">Select all visible</button></div>
             </div>
+            <div id="po-steps-pick" style="margin-bottom:10px"></div>
             <div id="po-structs"></div>
             <div style="margin-top:14px"><button class="primary" onclick="savePO()">💾 Save PO</button> <button class="secondary" onclick="poPreviewForm()">👁️ Preview</button> <button class="secondary" onclick="closePOForm()">Cancel</button></div>
         </div>
@@ -475,6 +483,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#ff8a00 !impor
         <div class="card">
             <div class="grid">
                 <div><label>Project Site</label><select id="st-site" onchange="stepsSiteChanged()"></select></div>
+                <div id="st-trip-card"></div>
                 <div><label>Mga Structure (pwedeng marami)</label>
                     <details class="stage" id="st-pick"><summary><span class="sdtxt" id="st-pick-txt">Pumili ng structure</span></summary>
                         <div class="stage-body"><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><select id="st-filter-status" onchange="stepsFilterChanged()"><option value="">All statuses</option><option value="NOT STARTED">NOT STARTED</option><option value="IN PROGRESS">IN PROGRESS</option><option value="READY TO ERECT">READY TO ERECT</option><option value="TRANSFERRED">TRANSFERRED</option><option value="COMPLETED">COMPLETED</option><option value="CHANGED">CHANGED</option></select><select id="st-filter-type" onchange="stepsFilterChanged()"></select></div><div class="sd-list" id="st-pick-list"></div>
@@ -567,10 +576,28 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#ff8a00 !impor
     <div id="dynamic-sections"></div>
 
     <!-- REPORT -->
+    <section id="weekPage">
+        <h2>📅 Ngayong Linggo</h2>
+        <div class="card">
+            <h3>⚡ Paalala sa Shutdown (14 araw)</h3>
+            <div id="wk-shutdown"></div>
+        </div>
+        <div class="card" style="margin-top:14px">
+            <h3>🪜 Structure na malapit nang i-retrieve</h3>
+            <div id="wk-structs"></div>
+        </div>
+        <div class="card" style="margin-top:14px">
+            <h3>⏰ PO na hindi pa napirmahan</h3>
+            <div id="wk-po"></div>
+        </div>
+        <button class="secondary" onclick="exportExcel()" style="margin-top:16px">📥 I-export sa Excel</button>
+    </section>
+
     <section id="report">
         <h2>📋 Full Report and Totals</h2>
         <div id="report-content"></div>
         <button class="primary" onclick="window.print()" style="margin-top:20px;">🖨️ Print Report</button>
+        <button class="secondary" onclick="exportExcel()" style="margin-top:20px;margin-left:8px">📥 I-export sa Excel</button>
     </section>
 </div>
 
@@ -604,14 +631,15 @@ const FB_CONFIG = {
   messagingSenderId: "862993855886",
   appId: "1:862993855886:web:803bbb22f09819da8ba0df"
 };
-const CLOUD = { ok: false, on: false, synced: false, auth: null, ref: null, timer: null, gateTimer: null };
+const CLOUD = { ok: false, on: false, synced: false, auth: null, db: null, ref: null, timer: null, gateTimer: null, watch: {} };
 function cloudInit() {
   try {
     if (typeof firebase === 'undefined') return;
     if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
     CLOUD.auth = firebase.auth();
     try { CLOUD.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch(e) {}
-    CLOUD.ref = firebase.firestore().collection('tracker').doc('main');
+    CLOUD.db = firebase.firestore();
+    CLOUD.ref = CLOUD.db.collection('tracker').doc('main');
     CLOUD.ok = true;
   } catch(e) { console.error('[cloud init]', e); }
 }
@@ -769,6 +797,7 @@ function cloudWatchAuth() {
     CLOUD.on = true;
     cloudGate(false);
     cloudShowStatus(user.email);
+    poWatchAll();
     if(CLOUD.synced) return;
     CLOUD.synced = true;
     const before = JSON.stringify(cloudCollect());
@@ -1092,6 +1121,13 @@ function stepPrice(item, d) {
 function stepName(item, d) { return String(item[d.by] || (d.legacy ? item[d.legacy] : '') || '').trim(); }
 function workerSteps(item, worker) { return STEP_DEFS.filter(d => sameName(stepName(item, d), worker) && d.done(item)); }
 let poSel = new Set();
+// ----- Paraan ng singil ng roadside kada site: 'piece' (kada poste, default) o 'trip' (kada biyahe) -----
+// Ang trip card sa Steps page para sa napiling site
+function renderTripCard(lineId) {
+    const box = document.getElementById('st-trip-card');
+    if(box) box.innerHTML = '';
+}
+
 // ----- Roadside biyahe: pumipili ng structure at dami ng poste sa bawat biyahe -----
 function tripBilled(tid, exceptPoId) {
     return pos.some(p => p.id !== exceptPoId && (p.items || []).some(i => (i.steps || []).includes('trip:' + tid)));
@@ -1109,8 +1145,11 @@ function structRemaining(lineId, st) {
 }
 // Kapag kumpleto na ang poste ng structure sa mga biyahe, mamarkahang delivered ang roadside nito
 function syncStructRoadside(lineId, structId) {
+    return; // Biyahe ay wala na; roadside ay per poste
     const st = (data[lineId] || []).find(x => String(x.id) === String(structId));
-    if(!st || st.roadsidePoles) return;
+    if(!st) return;
+    st.roadsideMethod = tripDeliveredFor(lineId, st.id) > 0 ? 'trip' : 'pole';
+    if(st.roadsidePoles) return;
     const total = parseInt(st.poles, 10) || 0;
     const done = tripDeliveredFor(lineId, st.id);
     let latest = '';
@@ -1136,10 +1175,10 @@ function renderTripForm(lineId) {
 function addTrip(lineId) {
     const date = document.getElementById(lineId + '-trip-date').value;
     const by = document.getElementById(lineId + '-trip-by').value.trim();
-    const price = parseFloat(document.getElementById(lineId + '-trip-price').value) || 0;
+    const price = parseFloat((prices.flat || {}).roadsideTrip) || 0;
     if(!date) { alertMsg('Ilagay ang petsa ng biyahe.'); return; }
     if(!by) { alertMsg('Pumili ng gumawa.'); return; }
-    if(price <= 0) { alertMsg('Ilagay ang presyo ng biyahe.'); return; }
+    if(price <= 0) { alertMsg('Itakda muna ang presyo kada biyahe sa 💲 Prices (Roadside).'); return; }
     const items = [];
     let bad = '';
     (data[lineId] || []).forEach(st => {
@@ -1159,7 +1198,6 @@ function addTrip(lineId) {
     saveAllData();
     renderTrips(lineId);
     renderTripForm(lineId);
-    document.getElementById(lineId + '-trip-price').value = '';
     alertMsg('✅ Naidagdag ang biyahe.');
 }
 async function delTrip(lineId, tid) {
@@ -1196,7 +1234,7 @@ function poBilled(worker) {
     }));
     return billed;
 }
-function unitSteps(item, worker) {
+function unitSteps(item, worker, lineId) {
     const poles = Math.max(1, parseInt(item.poles) || 1);
     const ePrice = parseFloat((prices.types[item.type] || {}).erection) || 0;
     const xPrice = parseFloat(prices.flat.excavation) || 0, out = [];
@@ -1222,8 +1260,8 @@ function poInfo(lineId, item, worker, billed) {
     const others = workerSteps(item, worker)
         .filter(d => d.pk !== 'erection' && d.pk !== 'excavation' && d.pk !== 'roadside' && d.pk !== 'dragging')
         .map(d => ({ k: d.k, base: d.k, l: d.k === 'anchor' ? 'Anchor/Lag ×' + (parseInt(item.anchorQty) || 0) + ' pc' : d.l, price: stepPrice(item, d) }));
-    const all = unitSteps(item, worker).concat(others);
-    const avail = all.filter(s => !isBilled(s));
+    const all = unitSteps(item, worker, lineId).concat(others);
+    const avail = all.filter(s => !isBilled(s) && stepSelected(s.base));
     const steps = avail.map(s => ({ k: s.k, l: s.l, price: s.price }));
     return { key, all, avail, steps, details: steps, amt: steps.reduce((t, d) => t + d.price, 0) };
 }
@@ -1239,15 +1277,25 @@ function poCalc() {
         if(!info.avail.length) return;
         out.push({ lineId, structId: item.id, steps: info.avail.map(d => d.k), details: info.details, amount: info.amt });
     });
-    Object.keys(trips).forEach(lineId => (trips[lineId] || []).forEach(t => {
-        if(!sameName(t.by, worker) || tripBilled(t.id, poEditId)) return;
-        out.push({
-            lineId, structId: null, steps: ['trip:' + t.id],
-            details: [{ k: 'trip:' + t.id, base: 'trip', l: 'Roadside biyahe', price: t.price }],
-            amount: t.price, tripId: t.id, tripDate: t.date, tripBy: t.by, tripPoles: t.poles, tripNos: (t.items || []).map(i => i.no + ' (' + i.poles + ')').join(', ')
-        });
-    }));
     return out;
+}
+// ----- Mga hakbang na sisingilin sa PO na ito -----
+let poStepSel = null;
+function stepSelected(base) { return !poStepSel || poStepSel.has(base); }
+function renderPoStepPick() {
+    const box = document.getElementById('po-steps-pick');
+    if(!box) return;
+    if(!poStepSel) poStepSel = new Set(STEP_DEFS.map(d => d.k));
+    box.innerHTML = '<div style="font-size:12px;font-weight:700;color:#334e68;margin-bottom:6px">Mga hakbang na sisingilin (alisin ang hindi isasama):</div>' +
+        '<div style="display:flex;gap:8px 14px;flex-wrap:wrap">' +
+        STEP_DEFS.map(d => '<label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer">' +
+            '<input type="checkbox" value="' + d.k + '"' + (poStepSel.has(d.k) ? ' checked' : '') + ' onchange="poStepToggle(this)"> ' + d.l + '</label>').join('') +
+        '</div>';
+}
+function poStepToggle(cb) {
+    if(!poStepSel) poStepSel = new Set(STEP_DEFS.map(d => d.k));
+    if(cb.checked) poStepSel.add(cb.value); else poStepSel.delete(cb.value);
+    renderPOStructures();
 }
 function poUpdateTotal() {
     const total = poCalc().reduce((t, i) => t + i.amount, 0);
@@ -1274,7 +1322,7 @@ function renderPO() {
         return '<tr><td><strong style="color:#d32f2f">' + escapeHtml(po.poNo) + '</strong></td><td>' + fmtDate(po.date) + '</td><td>' + escapeHtml(po.worker) + '</td>' +
           '<td class="po-lines" style="white-space:normal;min-width:260px">' + txt + '</td><td><strong>' + (po.amount ? peso(po.amount) : '-') + '</strong></td><td>' + status + '</td>' +
           '<td style="white-space:normal;min-width:190px"><button class="edit-btn" onclick="poPreviewById(\'' + po.id + '\')">👁️ Preview</button> <button class="edit-btn" onclick="openPOForm(\'' + po.id + '\')">✏️ Edit</button> ' +
-          '<button class="secondary btn-sm" onclick="signPO(\'' + po.id + '\')"' + (po.signature ? ' disabled' : '') + '>' + (po.signature ? '✅ Signed' : '✍️ Sign') + '</button> <button class="danger btn-sm" onclick="deletePO(\'' + po.id + '\')">🗑️</button></td></tr>';
+          '<button class="secondary btn-sm" onclick="poShareLink(\'' + po.id + '\')">🔗 Link</button> <button class="secondary btn-sm" onclick="signPO(\'' + po.id + '\')"' + (po.signature ? ' disabled' : '') + '>' + (po.signature ? '✅ Signed' : '✍️ Sign') + '</button> <button class="danger btn-sm" onclick="deletePO(\'' + po.id + '\')">🗑️</button></td></tr>';
     }).join('');
     box.innerHTML = '<div class="table-wrapper"><table style="min-width:860px"><thead><tr><th>PO No.</th><th>Date</th><th>Contractor</th><th>Structures (Project Site)</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
@@ -1288,6 +1336,7 @@ function nextPoNo() {
 }
 async function openPOForm(id) {
     poEditId = id || null;
+    poStepSel = null;
     const po = id ? pos.find(x => x.id === id) : null;
     if(po && po.signature) { alertMsg('Naka-pirma na ang PO na ito, hindi na mababago.'); poEditId = null; return; }
     if(po && po.paid && !await askOk('BAYAD NA ang PO na ito. I-e-edit pa rin?')) { poEditId = null; return; }
@@ -1309,6 +1358,7 @@ async function openPOForm(id) {
 }
 function closePOForm() { document.getElementById('po-form').style.display = 'none'; poEditId = null; poSel = new Set(); }
 function renderPOStructures() {
+    renderPoStepPick();
     const box = document.getElementById('po-structs');
     const worker = document.getElementById('po-worker').value;
     const filter = document.getElementById('po-site-filter').value;
@@ -1396,7 +1446,7 @@ function poDocHtml(po, draft) {
     let body = '';
     Object.keys(sites).forEach(name => {
         let sub = 0, rsPoles = 0, rsAmt = 0;
-        body += '<h4>📍 ' + escapeHtml(name) + '</h4><table><thead><tr><th>Structure</th><th>Type</th><th>Steps</th><th class="r">Amount</th></tr></thead><tbody>';
+        body += '<h4>📍 ' + escapeHtml(name) + ' <small style="font-weight:400;color:#62748a">· ' + sites[name].length + ' structure na naka-check</small></h4><table><thead><tr><th>Structure</th><th>Type</th><th>Steps</th><th class="r">Amount</th></tr></thead><tbody>';
         sites[name].sort((a, b) => String(a.st.no).localeCompare(String(b.st.no), undefined, { numeric: true })).forEach(({ st, it }) => {
             const rs = (it.details || []).filter(d => String(d.k || '').split(':')[0] === 'roadside');
             const rsA = rs.reduce((t, d) => t + (parseFloat(d.price) || 0), 0);
@@ -1452,7 +1502,69 @@ function signClear() {
     signCtx().clearRect(0, 0, c.width, c.height);
     signInk = false;
 }
-async function signPO(id) {
+async // ----- Link para sa contractor: kumpirmasyon sa phone niya, awtomatikong BAYAD NA sa tracker -----
+function poToken() {
+    const a = new Uint8Array(18);
+    crypto.getRandomValues(a);
+    return Array.from(a, b => b.toString(36).padStart(2, '0')).join('').slice(0, 24);
+}
+async function poShareLink(poId) {
+    const po = pos.find(p => p.id === poId);
+    if(!po) return;
+    if(!CLOUD.ok || !CLOUD.on || !CLOUD.db) { alertMsg('Mag-login muna para magawa ang link.'); return; }
+    if(po.paid) { alertMsg('Bayad na ang PO na ito.'); return; }
+    if(!po.token) { po.token = poToken(); savePOs(); }
+    const snap = {
+        poNo: po.poNo, date: po.date || '', worker: po.worker || '', amount: po.amount || 0, note: po.note || '',
+        rows: (po.items || []).filter(i => i.structId).map(i => {
+            const line = lines.find(l => l.id === i.lineId) || {};
+            const st = (data[i.lineId] || []).find(x => String(x.id) === String(i.structId)) || {};
+            return { site: line.name || '', no: st.no || '', type: st.type || '',
+                steps: (i.details || []).map(d => ({ l: d.l, price: d.price || 0 })), amount: i.amount || 0 };
+        }),
+        confirmed: false, confirmedAt: '', confirmedName: '', createdAt: new Date().toISOString()
+    };
+    try {
+        await CLOUD.db.collection('po_links').doc(po.token).set(snap);
+    } catch(e) { alertMsg('Hindi ma-save ang link: ' + (e.code || e.message)); return; }
+    const url = 'https://akkaymundo.github.io/rehab-po/confirm.html?t=' + po.token;
+    try { await navigator.clipboard.writeText(url); alertMsg('✅ Nakopya ang link. I-paste sa Messenger o Viber.'); }
+    catch(e) { alertMsg('Link: ' + url); }
+    poWatchOne(po);
+}
+function poWatchOne(po) {
+    if(!po.token || !CLOUD.db || CLOUD.watch[po.token]) return;
+    CLOUD.watch[po.token] = CLOUD.db.collection('po_links').doc(po.token).onSnapshot(doc => {
+        const d = doc.data();
+        if(!d || !d.confirmed) return;
+        const cur = pos.find(p => p.id === po.id);
+        if(!cur || cur.paid) return;
+        cur.paid = true;
+        cur.paidDate = (d.confirmedAt || '').slice(0, 10);
+        cur.signedDate = cur.paidDate;
+        cur.signature = confirmStampPng(d.confirmedName, d.confirmedAt);
+        savePOs();
+        renderPO();
+        notify('✅ Nakumpirma ng contractor ang PO ' + cur.poNo + '. Markado nang BAYAD NA.');
+    }, e => console.error('[po watch]', e));
+}
+function poWatchAll() {
+    if(!CLOUD.ok || !CLOUD.on) return;
+    pos.forEach(p => { if(p.token && !p.paid) poWatchOne(p); });
+}
+function confirmStampPng(name, at) {
+    const c = document.createElement('canvas');
+    c.width = 420; c.height = 110;
+    const x = c.getContext('2d');
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, 420, 110);
+    x.strokeStyle = '#0a7d3b'; x.lineWidth = 3; x.strokeRect(4, 4, 412, 102);
+    x.fillStyle = '#0a7d3b'; x.font = 'bold 22px Arial'; x.fillText('CONFIRMED ONLINE', 18, 38);
+    x.fillStyle = '#17283b'; x.font = '18px Arial'; x.fillText(String(name || '-'), 18, 68);
+    x.font = '14px Arial'; x.fillText(new Date(at || Date.now()).toLocaleString(), 18, 92);
+    return c.toDataURL('image/png');
+}
+
+function signPO(id) {
     const po = pos.find(x => x.id === id);
     if(!po) return;
     if(po.signature) { alertMsg('Naka-pirma na ang PO na ito.'); return; }
@@ -1492,6 +1604,61 @@ async function signConfirm() {
     });
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => c.addEventListener(t, () => { signDrawing = false; }));
 })();
+
+// ----- Ngayong Linggo: paalala sa shutdown, structure, biyahe, at PO -----
+function renderWeek() {
+    const today = todayISO(), dayMs = 86400000;
+    const daysTo = d => Math.round((new Date(d) - new Date(today)) / dayMs);
+    const sd = [];
+    lines.forEach(l => (shutdowns[l.id] || []).forEach(x => {
+        const n = daysTo(x.date);
+        if(n >= 0 && n <= 14) sd.push({ site: l.name, date: x.date, n, note: x.note || '' });
+    }));
+    sd.sort((a, b) => a.n - b.n);
+    document.getElementById('wk-shutdown').innerHTML = sd.length
+        ? sd.map(x => '<div class="kv"><span>' + escapeHtml(x.site) + ' · ' + fmtDate(x.date) + (x.note ? ' · ' + escapeHtml(x.note) : '') + '</span><b>' + (x.n === 0 ? 'Ngayon' : x.n + ' araw') + '</b></div>').join('')
+        : '<p class="small-note">Walang shutdown sa susunod na 14 araw.</p>';
+
+    let html = '';
+    lines.forEach(l => {
+        const rows = (data[l.id] || []).filter(x => /READY TO ERECT|ERECTED|TRANSFERRED/.test(getStatus(x).text));
+        if(!rows.length) return;
+        html += '<h4>📍 ' + escapeHtml(l.name) + '</h4>' + rows.map(x => '<div class="kv"><span>' + escapeHtml(x.no) + ' · ' + escapeHtml(x.type) + '</span><b>' + getStatus(x).text + '</b></div>').join('');
+    });
+    document.getElementById('wk-structs').innerHTML = html || '<p class="small-note">Walang structure na malapit nang i-retrieve.</p>';
+
+
+    const unsigned = pos.filter(p => !p.signature);
+    document.getElementById('wk-po').innerHTML = unsigned.length
+        ? unsigned.map(p => '<div class="kv"><span>' + escapeHtml(p.poNo) + ' · ' + escapeHtml(p.worker || '-') + ' · ' + fmtDate(p.date) + '</span><b>' + peso(p.amount) + '</b></div>').join('')
+        : '<p class="small-note">Lahat ng PO ay napirmahan na.</p>';
+}
+
+// ----- Export sa Excel: Structures, POs, Biyahe, at Shutdown (isang file, apat na sheet) -----
+function exportExcel() {
+    if(typeof XLSX === 'undefined') { alertMsg('Hindi ma-load ang Excel. I-check ang internet at i-refresh ang page.'); return; }
+    const wb = XLSX.utils.book_new();
+    const lineName = id => (lines.find(l => l.id === id) || {}).name || '';
+
+    const sRows = [['Site', 'Structure', 'Old No.', 'Type', 'Poles', 'Status', 'Remarks', 'Roadside', 'Excavation', 'Dragging', 'Erection', 'Anchor', 'Retrieve']];
+    lines.forEach(l => (data[l.id] || []).forEach(x => sRows.push([
+        l.name, x.no, x.oldNo || '', x.type, parseInt(x.poles, 10) || 0, getStatus(x).text, x.remarks || '',
+        x.roadsideDate || '', x.excavationDate || '', x.draggingDate || '', x.erectionDate || '', x.anchorDate || '', x.retrievalDate || ''
+    ])));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sRows), 'Structures');
+
+    const pRows = [['PO No.', 'Date', 'Contractor', 'Amount', 'Status', 'Signed date', 'Note']];
+    pos.forEach(p => pRows.push([p.poNo, p.date || '', p.worker || '', p.amount || 0, p.signature ? 'PAID' : 'NOT YET PAID', p.signedDate || '', p.note || '']));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pRows), 'POs');
+
+
+    const dRows = [['Site', 'Date', 'Note', 'Assignments']];
+    lines.forEach(l => (shutdowns[l.id] || []).forEach(x => dRows.push([l.name, x.date || '', x.note || '', (x.assignments || []).length])));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(dRows), 'Shutdown');
+
+    XLSX.writeFile(wb, 'Rehab_Report_' + todayISO() + '.xlsx');
+    alertMsg('✅ Na-export ang Excel file.');
+}
 
 // ----- Burahin lahat ng data (local at cloud) -----
 async function clearAllData() {
@@ -1592,7 +1759,9 @@ try {
 function renderPrices() {
     document.getElementById('pr-flat').innerHTML = FLAT_PRICES.map(([k, label, lab2]) => {
         const v = prices.flat[k];
-        return '<details class="stage" oninput="priceChanged(event, this)"><summary>' + label + '<span class="sbadge">Not yet</span></summary><div class="stage-body"><div class="price-grid" style="grid-template-columns:1fr"><div><label>' + lab2 + '</label><input type="number" inputmode="decimal" min="0" step="any" placeholder="0.00" data-pflat="' + k + '" value="' + (v === undefined ? '' : v) + '"></div></div></div></details>';
+        const tripBox = '';
+        const cols = '1fr';
+        return '<details class="stage" oninput="priceChanged(event, this)"><summary>' + label + '<span class="sbadge">Not yet</span></summary><div class="stage-body"><div class="price-grid" style="grid-template-columns:' + cols + '"><div><label>' + lab2 + '</label><input type="number" inputmode="decimal" min="0" step="any" placeholder="0.00" data-pflat="' + k + '" value="' + (v === undefined ? '' : v) + '"></div>' + tripBox + '</div></div></details>';
     }).join('');
     document.getElementById('pr-types').innerHTML = PRICE_TYPES.map(t => {
         const cur = prices.types[t] || {};
@@ -2109,20 +2278,6 @@ function buildDynamicSections() {
                 </div>
             </div>
             
-            <div class="card" style="margin-top:14px">
-                <h3>🚚 Roadside — Biyahe</h3>
-                <p class="small-note">Ilagay ang petsa, gumawa, at presyo ng biyahe. Sa listahan ng structure, ilagay ang dami ng poste na nakarga sa biyaheng ito.</p>
-                <div class="grid">
-                    <div><label>Petsa ng biyahe</label><input type="date" id="${line.id}-trip-date"></div>
-                    <div><label>Gumawa</label><select class="worker-sel" id="${line.id}-trip-by"></select></div>
-                    <div><label>Presyo ng biyahe (₱)</label><input type="number" id="${line.id}-trip-price" min="0" step="any" placeholder="0.00"></div>
-                </div>
-                <div id="${line.id}-trip-structs" style="margin-top:12px"></div>
-                <button type="button" class="primary" style="margin-top:10px" onclick="addTrip('${line.id}')">➕ Idagdag ang biyahe</button>
-                <h3 style="margin-top:16px">Listahan ng biyahe</h3>
-                <div id="${line.id}-trips"></div>
-            </div>
-
             <h3>📋 Structure List</h3>
             <p class="small-note">👉 I-scroll pakanan para makita ang lahat → | 🔁 = Napalitan ang numero/lokasyon</p>
             <div class="table-wrapper" id="${line.id}-list"></div>
@@ -2243,7 +2398,24 @@ document.addEventListener('change', function(e) {
     const c = e.target;
     if(c.classList && c.classList.contains('st-chk')) { if(c.checked) stSel.add(c.value); else stSel.delete(c.value); stPickText(); loadSteps(); }
 });
-function stepsSiteChanged() { stepsFillStructs([]); loadSteps(); }
+function renderTripPrices() {
+    const box = document.getElementById('trip-prices');
+    if(!box) return;
+    if(!lines.length) { box.innerHTML = '<p class="small-note">Wala pang project site.</p>'; return; }
+    box.innerHTML = lines.map(l => '<div class="kv"><span>' + escapeHtml(l.name) + '</span>' +
+        '<input type="number" min="0" step="any" placeholder="0.00" value="' + (l.tripPrice || '') + '" style="width:130px" ' +
+        'onchange="setTripPrice(\'' + l.id + '\', this.value)"></div>').join('');
+}
+function setTripPrice(lineId, val) {
+    const l = lines.find(x => x.id === lineId);
+    if(!l) return;
+    l.tripPrice = parseFloat(val) || 0;
+    saveLines();
+    saveAllData();
+    renderTripCard(lineId);
+    alertMsg('✅ Na-save ang presyo kada biyahe.');
+}
+function stepsSiteChanged() { stepsFillStructs([]); loadSteps(); renderTripCard(document.getElementById('st-site').value); }
 function stepsSelected() {
     const lineId = document.getElementById('st-site').value;
     const items = sortedStructures(data[lineId] || []).filter(x => stSel.has(String(x.id)));
@@ -2698,11 +2870,13 @@ function showTab(id) {
     window.scrollTo(0, 0);
     if(id === 'linesHub') renderLinesHub();
     if(id === 'shutdownPage') renderShutdownSummary();
-    if(id === 'stepsPage') { fillWorkerSelects(); stepsRefresh(); }
+    if(id === 'stepsPage') { fillWorkerSelects(); stepsRefresh(); renderTripCard(document.getElementById('st-site').value); }
     if(id === 'workersPage') renderWorkersPage();
     if(id === 'pricesPage') { const d0 = document.querySelector('#pr-flat details.stage'); if(d0) d0.open = true; }
     if(id === 'poPage') renderPO();
     if(id === 'hwPage') hwRender();
+    if(id === 'weekPage') renderWeek();
+    
     
     if(id === 'report') renderReport();
     if(id === 'dashboard') updateDashboard();

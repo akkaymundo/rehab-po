@@ -1501,7 +1501,7 @@ function signClear() {
     signCtx().clearRect(0, 0, c.width, c.height);
     signInk = false;
 }
-async // ----- Link para sa contractor: kumpirmasyon sa phone niya, awtomatikong BAYAD NA sa tracker -----
+// ----- Link para sa contractor: kumpirmasyon sa phone niya, awtomatikong BAYAD NA sa tracker -----
 function poToken() {
     const a = new Uint8Array(18);
     crypto.getRandomValues(a);
@@ -2773,6 +2773,14 @@ function markStructureStatus(item) {
 }
 
 function updateDashboard() {
+    try { updateDashboardCore(); }
+    catch(e) {
+        console.error('[dashboard]', e);
+        const box = document.getElementById('dash-lines');
+        if(box) box.innerHTML = '<p style="color:#d32f2f;padding:12px">Hindi ma-display ang Project Overview. Error: ' + escapeHtml(e && e.message ? e.message : String(e)) + '</p>';
+    }
+}
+function updateDashboardCore() {
     try { renderDashExtras(); } catch(e) { console.error('[dash-extras]', e); }
     const dashContainer = document.getElementById('dash-lines');
     let gStructs = 0, gPoles = 0, gCleared = 0, gClearedPoles = 0;
